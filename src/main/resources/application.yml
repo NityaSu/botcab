@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: botcab
+  datasource:
+    url: jdbc:postgresql://localhost:5432/botcab
+    username: botcab
+    password: botcab
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+
+server:
+  port: 8080

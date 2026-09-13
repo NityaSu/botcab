@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: botcab
+      POSTGRES_USER: botcab
+      POSTGRES_PASSWORD: botcab
+    ports:
+      - "5432:5432"
+    volumes:
+      - botcab_pg:/var/lib/postgresql/data
+
+volumes:
+  botcab_pg:
