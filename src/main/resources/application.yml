@@ -15,6 +15,10 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6380
 
 server:
   port: 8080

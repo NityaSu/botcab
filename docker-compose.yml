@@ -10,5 +10,10 @@ services:
     volumes:
       - botcab_pg:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
+
 volumes:
   botcab_pg:
