@@ -12,3 +12,6 @@ target/
 *.log
 web/node_modules/
 web/dist/
+.cursor/
+AGENTS.md
+docs/

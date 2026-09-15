@@ -10,12 +10,6 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | **Now** | Phase 2 done: Redis GEO matching. No `POST /rides` yet |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
-**Docs**
-
-- [docs/GOAL.md](docs/GOAL.md) — product scope and success criteria
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — packages, state machine, data rules
-- [docs/PHASES.md](docs/PHASES.md) — delivery phases and current status
-
 ## Stack
 
 | Layer | Choice |
