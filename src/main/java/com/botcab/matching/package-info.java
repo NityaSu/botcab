@@ -1,2 +1,2 @@
-/** Driver matching. Empty until Phase 2. May call other features' services, never their repositories. */
+/** Geospatial matching: expand radius, rank by distance, lock one driver. */
 package com.botcab.matching;
