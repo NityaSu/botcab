@@ -1,13 +1,13 @@
 # BotCab
 
-Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; a React app in `/web` comes when the booking APIs exist.
+Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; `/web` is a tiny driver-sim until booking APIs exist.
 
 A rider requests pickup and dropoff. The system matches a nearby driver, offers the trip with a short accept window, then tracks **requested → matched → driver en route → in progress → completed** (or cancelled). Fares come later; payments stay mocked.
 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 1 done: schema, ride entity, status machine. No HTTP yet |
+| **Now** | Phase 2 done: Redis GEO matching. No `POST /rides` yet |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 **Docs**
@@ -22,9 +22,10 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 |---|---|
 | Backend | Java 21, Spring Boot 3.4 (Web, Data JPA, Validation) |
 | DB | PostgreSQL 16, Flyway |
-| Later | Redis GEO + Redisson, STOMP WebSockets, Spring Security |
-| Frontend | React 19 + Vite + TypeScript in `/web` (not yet) |
-| Run | `docker compose` for Postgres |
+| Location | Redis 7 GEO + Redisson locks |
+| Later | STOMP WebSockets, Spring Security |
+| Frontend | React 19 + Vite + TypeScript in `/web` (driver-sim) |
+| Run | `docker compose` for Postgres + Redis |
 
 ## Packages
 
@@ -43,6 +44,12 @@ docker compose up -d
 ./mvnw spring-boot:run
 ```
 
-Postgres: `localhost:5432`, database / user / password `botcab`.
+In another terminal:
 
-Flyway applies `V1__init.sql` on startup. Hibernate `ddl-auto: validate` checks `Ride` against the `rides` table.
+```bash
+cd web && npm install && npm run dev
+```
+
+Open `http://localhost:5173`. Demo drivers are ids **1, 2, 3**. Ping a location (Phnom Penh defaults), then Find driver.
+
+Postgres: `localhost:5432`, database / user / password `botcab`. Redis: `localhost:6380` (BotCab’s container; 6379 may already be in use on this machine).
