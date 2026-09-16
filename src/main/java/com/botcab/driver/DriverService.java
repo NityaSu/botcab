@@ -46,6 +46,10 @@ public class DriverService {
         locations.remove(driverId);
     }
 
+    /**
+     * Claim the driver for an offer window. Keeps the GEO pin so a timeout can
+     * reassign without forcing another ping.
+     */
     @Transactional
     public boolean tryMarkBusy(long driverId) {
         Driver driver = require(driverId);
@@ -53,8 +57,19 @@ public class DriverService {
             return false;
         }
         driver.markBusy();
-        locations.remove(driverId);
         return true;
+    }
+
+    /** Offer accepted — drop live location until the trip ends. */
+    public void clearLiveLocation(long driverId) {
+        locations.remove(driverId);
+    }
+
+    /** Offer timed out or rejected — free again; GEO pin should still be present. */
+    @Transactional
+    public void releaseOffer(long driverId) {
+        Driver driver = require(driverId);
+        driver.goAvailable();
     }
 
     public List<NearbyDriver> nearby(double lat, double lng, double radiusKm, int limit) {

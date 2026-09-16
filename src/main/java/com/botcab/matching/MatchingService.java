@@ -29,12 +29,19 @@ public class MatchingService {
     }
 
     public MatchResult match(double pickupLat, double pickupLng) {
+        return match(pickupLat, pickupLng, Set.of());
+    }
+
+    public MatchResult match(double pickupLat, double pickupLng, Set<Long> excludeDriverIds) {
         Set<Long> seen = new HashSet<>();
         for (double radiusKm : RADII_KM) {
             List<NearbyDriver> ring = new ArrayList<>(
                     drivers.nearby(pickupLat, pickupLng, radiusKm, CANDIDATES_PER_RING));
             ring.sort(Comparator.comparingDouble(NearbyDriver::distanceKm));
             for (NearbyDriver candidate : ring) {
+                if (excludeDriverIds.contains(candidate.driverId())) {
+                    continue;
+                }
                 if (!seen.add(candidate.driverId())) {
                     continue;
                 }
