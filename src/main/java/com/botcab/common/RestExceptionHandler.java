@@ -2,6 +2,10 @@ package com.botcab.common;
 
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferNotFoundException;
+import com.botcab.ride.IllegalRideTransitionException;
+import com.botcab.ride.RideCancelNotAllowedException;
+import com.botcab.ride.RideNotFoundException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +26,22 @@ public class RestExceptionHandler {
     @ExceptionHandler(OfferNotFoundException.class)
     public ResponseEntity<Map<String, String>> noOffer(OfferNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RideNotFoundException.class)
+    public ResponseEntity<Map<String, String>> noRide(RideNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler({
+            IllegalRideTransitionException.class,
+            RideCancelNotAllowedException.class,
+            OptimisticLockingFailureException.class
+    })
+    public ResponseEntity<Map<String, String>> conflict(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", ex.getMessage()));
     }
 
