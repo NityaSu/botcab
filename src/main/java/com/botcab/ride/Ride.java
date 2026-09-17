@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -60,6 +61,11 @@ public class Ride {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    /** Optimistic lock — concurrent accept/cancel must not silently overwrite. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     protected Ride() {
         // for JPA
     }
@@ -85,8 +91,26 @@ public class Ride {
         this.status = next;
     }
 
+    /** Driver accepted the offer: assign and move {@code REQUESTED → MATCHED}. */
+    public void assignDriver(long driverId, Instant matchedAt) {
+        transitionTo(RideStatus.MATCHED);
+        this.driverId = driverId;
+        this.matchedAt = matchedAt;
+    }
+
+    /** Cancel per {@link RideCancellationRules}; clears assignment timestamps. */
+    public void cancel(CancelledBy by, Instant endedAt) {
+        RideCancellationRules.requireAllowed(this.status, by);
+        transitionTo(RideStatus.CANCELLED);
+        this.endedAt = endedAt;
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public long getVersion() {
+        return version;
     }
 
     public Long getRiderId() {
