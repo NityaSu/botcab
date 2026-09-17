@@ -1,6 +1,9 @@
 package com.botcab.matching;
 
 import com.botcab.driver.DriverService;
+import com.botcab.ride.Ride;
+import com.botcab.ride.RideService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -11,16 +14,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Match a nearby driver, push a STOMP offer, wait {@link #ACCEPT_SECONDS}s.
- * Timeout or reject frees the driver and tries the next one (reassignment).
- * <p>
- * No {@code Ride} row yet — that is Phase 4 {@code POST /rides}.
+ * Match a nearby driver for a real {@link Ride}, push a STOMP offer, wait
+ * {@link #ACCEPT_SECONDS}s. Timeout or reject frees the driver and tries the next one.
+ * Accept calls {@link RideService#assignDriver} ({@code REQUESTED → MATCHED}).
  */
 @Service
 public class OfferService {
@@ -30,47 +32,97 @@ public class OfferService {
 
     private final MatchingService matching;
     private final DriverService drivers;
+    private final RideService rides;
     private final SimpMessagingTemplate messaging;
 
     private final Map<String, LiveOffer> offers = new ConcurrentHashMap<>();
+    /** rideId → current pending offerId */
+    private final Map<Long, String> pendingByRide = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "offer-timeout");
         t.setDaemon(true);
         return t;
     });
 
-    public OfferService(MatchingService matching, DriverService drivers, SimpMessagingTemplate messaging) {
+    public OfferService(
+            MatchingService matching,
+            DriverService drivers,
+            @Lazy RideService rides,
+            SimpMessagingTemplate messaging) {
         this.matching = matching;
         this.drivers = drivers;
+        this.rides = rides;
         this.messaging = messaging;
     }
 
-    public OfferMessage request(double pickupLat, double pickupLng) {
-        return assign(pickupLat, pickupLng, Set.of(), 0);
+    public OfferMessage requestForRide(Ride ride) {
+        return assign(
+                ride.getId(),
+                ride.getPickupLat().doubleValue(),
+                ride.getPickupLng().doubleValue(),
+                Set.of(),
+                0);
     }
 
     public OfferMessage accept(String offerId, long driverId) {
         LiveOffer live = requirePending(offerId, driverId);
-        live.cancelTimeout();
-        live.status = OfferStatus.ACCEPTED;
-        drivers.clearLiveLocation(driverId);
-        OfferMessage msg = live.toMessage("accepted");
-        push(msg);
-        offers.remove(offerId);
-        return msg;
+        return acceptLive(live);
+    }
+
+    public OfferMessage acceptForRide(long rideId, long driverId) {
+        LiveOffer live = requirePendingForRide(rideId, driverId);
+        return acceptLive(live);
     }
 
     public OfferMessage reject(String offerId, long driverId) {
         LiveOffer live = requirePending(offerId, driverId);
+        return rejectLive(live);
+    }
+
+    public OfferMessage rejectForRide(long rideId, long driverId) {
+        LiveOffer live = requirePendingForRide(rideId, driverId);
+        return rejectLive(live);
+    }
+
+    /** Drop any in-flight offer for this ride (rider/system cancel while REQUESTED). */
+    public void cancelPendingForRide(long rideId) {
+        String offerId = pendingByRide.remove(rideId);
+        if (offerId == null) {
+            return;
+        }
+        LiveOffer live = offers.remove(offerId);
+        if (live == null || live.status != OfferStatus.PENDING) {
+            return;
+        }
+        live.cancelTimeout();
+        live.status = OfferStatus.REJECTED;
+        push(live.toMessage("cancelled"));
+        drivers.releaseOffer(live.driverId);
+    }
+
+    private OfferMessage acceptLive(LiveOffer live) {
+        live.cancelTimeout();
+        rides.assignDriver(live.rideId, live.driverId);
+        live.status = OfferStatus.ACCEPTED;
+        drivers.clearLiveLocation(live.driverId);
+        OfferMessage msg = live.toMessage("accepted");
+        push(msg);
+        offers.remove(live.offerId);
+        pendingByRide.remove(live.rideId, live.offerId);
+        return msg;
+    }
+
+    private OfferMessage rejectLive(LiveOffer live) {
         live.cancelTimeout();
         live.status = OfferStatus.REJECTED;
         push(live.toMessage("rejected"));
-        offers.remove(offerId);
-        drivers.releaseOffer(driverId);
+        offers.remove(live.offerId);
+        pendingByRide.remove(live.rideId, live.offerId);
+        drivers.releaseOffer(live.driverId);
         return reassignAfter(live);
     }
 
-    private OfferMessage assign(double pickupLat, double pickupLng, Set<Long> exclude, int attempt) {
+    private OfferMessage assign(long rideId, double pickupLat, double pickupLng, Set<Long> exclude, int attempt) {
         if (attempt >= MAX_REASSIGNS) {
             throw new NoDriverAvailableException(pickupLat, pickupLng);
         }
@@ -79,6 +131,7 @@ public class OfferService {
         Instant expiresAt = Instant.now().plusSeconds(ACCEPT_SECONDS);
         LiveOffer live = new LiveOffer(
                 offerId,
+                rideId,
                 match.driverId(),
                 pickupLat,
                 pickupLng,
@@ -92,6 +145,7 @@ public class OfferService {
                 () -> onTimeout(offerId), ACCEPT_SECONDS, TimeUnit.SECONDS);
         live.timeoutTask = timeout;
         offers.put(offerId, live);
+        pendingByRide.put(rideId, offerId);
 
         OfferMessage msg = live.toMessage("offer");
         push(msg);
@@ -103,22 +157,30 @@ public class OfferService {
         if (live == null || live.status != OfferStatus.PENDING) {
             return;
         }
+        pendingByRide.remove(live.rideId, offerId);
         live.status = OfferStatus.EXPIRED;
         push(live.toMessage("expired"));
         drivers.releaseOffer(live.driverId);
         try {
-            assign(live.pickupLat, live.pickupLng, live.exclude, live.attempt + 1);
+            assign(live.rideId, live.pickupLat, live.pickupLng, live.exclude, live.attempt + 1);
         } catch (NoDriverAvailableException ex) {
+            rides.cancelAsSystem(live.rideId);
             messaging.convertAndSend(
-                    "/topic/pickups/" + coordKey(live.pickupLat, live.pickupLng),
-                    Map.of("error", ex.getMessage(), "event", "no_driver"));
+                    "/topic/rides/" + live.rideId,
+                    Map.of("error", ex.getMessage(), "event", "no_driver", "rideId", live.rideId));
         }
     }
 
     private OfferMessage reassignAfter(LiveOffer previous) {
         try {
-            return assign(previous.pickupLat, previous.pickupLng, previous.exclude, previous.attempt + 1);
+            return assign(
+                    previous.rideId,
+                    previous.pickupLat,
+                    previous.pickupLng,
+                    previous.exclude,
+                    previous.attempt + 1);
         } catch (NoDriverAvailableException ex) {
+            rides.cancelAsSystem(previous.rideId);
             throw ex;
         }
     }
@@ -128,6 +190,22 @@ public class OfferService {
         if (live == null) {
             throw new OfferNotFoundException(offerId);
         }
+        return requireOwnedPending(live, driverId);
+    }
+
+    private LiveOffer requirePendingForRide(long rideId, long driverId) {
+        String offerId = pendingByRide.get(rideId);
+        if (offerId == null) {
+            throw new OfferNotFoundException("ride:" + rideId);
+        }
+        LiveOffer live = offers.get(offerId);
+        if (live == null) {
+            throw new OfferNotFoundException(offerId);
+        }
+        return requireOwnedPending(live, driverId);
+    }
+
+    private LiveOffer requireOwnedPending(LiveOffer live, long driverId) {
         if (live.driverId != driverId) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Offer belongs to another driver");
         }
@@ -139,14 +217,12 @@ public class OfferService {
 
     private void push(OfferMessage msg) {
         messaging.convertAndSend("/topic/drivers/" + msg.driverId() + "/offers", msg);
-    }
-
-    private static String coordKey(double lat, double lng) {
-        return lat + "," + lng;
+        messaging.convertAndSend("/topic/rides/" + msg.rideId(), msg);
     }
 
     private static final class LiveOffer {
         final String offerId;
+        final long rideId;
         final long driverId;
         final double pickupLat;
         final double pickupLng;
@@ -159,6 +235,7 @@ public class OfferService {
 
         LiveOffer(
                 String offerId,
+                long rideId,
                 long driverId,
                 double pickupLat,
                 double pickupLng,
@@ -167,6 +244,7 @@ public class OfferService {
                 Set<Long> exclude,
                 int attempt) {
             this.offerId = offerId;
+            this.rideId = rideId;
             this.driverId = driverId;
             this.pickupLat = pickupLat;
             this.pickupLng = pickupLng;
@@ -185,7 +263,7 @@ public class OfferService {
 
         OfferMessage toMessage(String note) {
             return new OfferMessage(
-                    offerId, driverId, pickupLat, pickupLng, distanceKm, expiresAt, status, note);
+                    offerId, rideId, driverId, pickupLat, pickupLng, distanceKm, expiresAt, status, note);
         }
     }
 }

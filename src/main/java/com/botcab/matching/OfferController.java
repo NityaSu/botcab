@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Offer accept/reject by offer id (driver-sim convenience). Prefer
+ * {@code POST /api/rides/{id}/accept|reject} once a ride row exists.
+ */
 @RestController
 @RequestMapping("/api/offers")
 public class OfferController {
@@ -15,12 +19,6 @@ public class OfferController {
 
     public OfferController(OfferService offers) {
         this.offers = offers;
-    }
-
-    /** Match + push STOMP offer to the winning driver. */
-    @PostMapping("/request")
-    public OfferMessage request(@Valid @RequestBody MatchRequest body) {
-        return offers.request(body.lat(), body.lng());
     }
 
     @PostMapping("/{offerId}/accept")
