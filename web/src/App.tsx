@@ -6,6 +6,7 @@ const WS_URL = "ws://localhost:8080/ws";
 
 type OfferMessage = {
   offerId: string;
+  rideId: number;
   driverId: number;
   pickupLat: number;
   pickupLng: number;
@@ -13,6 +14,19 @@ type OfferMessage = {
   expiresAt: string;
   status: string;
   note: string;
+};
+
+type RideResponse = {
+  id: number;
+  riderId: number;
+  driverId: number | null;
+  status: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffLat: number;
+  dropoffLng: number;
+  version: number;
+  offer: OfferMessage | null;
 };
 
 async function post(path: string, body?: unknown) {
@@ -30,11 +44,15 @@ async function post(path: string, body?: unknown) {
 
 export default function App() {
   const [driverId, setDriverId] = useState(1);
+  const [riderId, setRiderId] = useState(1);
   const [driverLat, setDriverLat] = useState(PNH.lat);
   const [driverLng, setDriverLng] = useState(PNH.lng);
   const [pickupLat, setPickupLat] = useState(PNH.lat);
   const [pickupLng, setPickupLng] = useState(PNH.lng);
-  const [log, setLog] = useState("Connect WS, go available, ping, then request offer.");
+  const [dropoffLat, setDropoffLat] = useState(PNH.lat + 0.01);
+  const [dropoffLng, setDropoffLng] = useState(PNH.lng + 0.01);
+  const [log, setLog] = useState("Connect WS, go available, ping, then book a ride.");
+  const [ride, setRide] = useState<RideResponse | null>(null);
   const [offer, setOffer] = useState<OfferMessage | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [wsState, setWsState] = useState("connecting…");
@@ -95,7 +113,6 @@ export default function App() {
     if (!offer) {
       return { x: 50, y: 50 };
     }
-    // Tiny fake map: Phnom Penh-ish box, pickup as pin
     const x = 20 + ((offer.pickupLng - 104.9) / 0.1) * 60;
     const y = 80 - ((offer.pickupLat - 11.5) / 0.1) * 60;
     return {
@@ -115,8 +132,7 @@ export default function App() {
     <main style={{ fontFamily: "sans-serif", maxWidth: 560, margin: "2rem auto" }}>
       <h1>BotCab — driver sim</h1>
       <p>
-        Phase 3: STOMP offer + 15s accept. WS: <strong>{wsState}</strong> (driver topic{" "}
-        <code>/topic/drivers/{driverId}/offers</code>)
+        Phase 4: book a ride → STOMP offer → accept = MATCHED. WS: <strong>{wsState}</strong>
       </p>
 
       <form onSubmit={onPing}>
@@ -162,17 +178,32 @@ export default function App() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void run("offer", async () => {
-            const msg = (await post("/api/offers/request", {
-              lat: pickupLat,
-              lng: pickupLng,
-            })) as OfferMessage;
-            setOffer(msg);
-            return msg;
+          void run("book", async () => {
+            const body = (await post("/api/rides", {
+              riderId,
+              pickupLat,
+              pickupLng,
+              dropoffLat,
+              dropoffLng,
+            })) as RideResponse;
+            setRide(body);
+            if (body.offer) {
+              setOffer(body.offer);
+            }
+            return body;
           });
         }}
       >
-        <h2>Request offer (match + push)</h2>
+        <h2>Book ride (POST /rides)</h2>
+        <label>
+          rider id{" "}
+          <input
+            type="number"
+            min={1}
+            value={riderId}
+            onChange={(e) => setRiderId(Number(e.target.value))}
+          />
+        </label>
         <label>
           pickup lat{" "}
           <input
@@ -187,14 +218,55 @@ export default function App() {
             onChange={(e) => setPickupLng(Number(e.target.value))}
           />
         </label>
-        <button type="submit">Request offer</button>
+        <label>
+          dropoff lat{" "}
+          <input
+            value={dropoffLat}
+            onChange={(e) => setDropoffLat(Number(e.target.value))}
+          />
+        </label>
+        <label>
+          dropoff lng{" "}
+          <input
+            value={dropoffLng}
+            onChange={(e) => setDropoffLng(Number(e.target.value))}
+          />
+        </label>
+        <button type="submit">Book ride</button>
       </form>
+
+      {ride && (
+        <p>
+          Ride <strong>{ride.id}</strong> · {ride.status} · v{ride.version}
+          {ride.status !== "COMPLETED" && ride.status !== "CANCELLED" && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() =>
+                  run("cancel", async () => {
+                    const body = (await post(`/api/rides/${ride.id}/cancel`, {
+                      cancelledBy: "RIDER",
+                      actorId: riderId,
+                    })) as RideResponse;
+                    setRide(body);
+                    setOffer(null);
+                    return body;
+                  })
+                }
+              >
+                Cancel (rider)
+              </button>
+            </>
+          )}
+        </p>
+      )}
 
       {offer && (
         <section style={{ marginTop: "1.5rem" }}>
           <h2>Live offer</h2>
           <p>
-            {offer.status}
+            ride {offer.rideId} · {offer.status}
             {secondsLeft !== null ? ` · ${secondsLeft}s left` : ""} · driver {offer.driverId} ·{" "}
             {offer.distanceKm.toFixed(2)} km
           </p>
@@ -244,9 +316,18 @@ export default function App() {
               <button
                 type="button"
                 onClick={() =>
-                  run("accept", () =>
-                    post(`/api/offers/${offer.offerId}/accept`, { driverId })
-                  )
+                  run("accept", async () => {
+                    const msg = (await post(`/api/rides/${offer.rideId}/accept`, {
+                      driverId,
+                    })) as OfferMessage;
+                    setOffer(msg);
+                    setRide((prev) =>
+                      prev
+                        ? { ...prev, status: "MATCHED", driverId, offer: msg }
+                        : prev
+                    );
+                    return msg;
+                  })
                 }
               >
                 Accept
@@ -255,7 +336,7 @@ export default function App() {
                 type="button"
                 onClick={() =>
                   run("reject", () =>
-                    post(`/api/offers/${offer.offerId}/reject`, { driverId })
+                    post(`/api/rides/${offer.rideId}/reject`, { driverId })
                   )
                 }
               >

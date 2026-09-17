@@ -1,13 +1,13 @@
 # BotCab
 
-Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; `/web` is a tiny driver-sim until booking APIs exist.
+Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; `/web` is a tiny driver-sim for the APIs just built.
 
 A rider requests pickup and dropoff. The system matches a nearby driver, offers the trip with a short accept window, then tracks **requested → matched → driver en route → in progress → completed** (or cancelled). Fares come later; payments stay mocked.
 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 3 done: STOMP offers + 15s accept. No `POST /rides` yet |
+| **Now** | Phase 4 done: `POST /rides`, accept → MATCHED, cancel, `@Version` |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -45,11 +45,12 @@ In another terminal:
 cd web && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. Demo drivers are ids **1, 2, 3**.
+Open `http://localhost:5173`. Demo drivers are ids **1, 2, 3**; demo rider is id **1**.
 
 1. Wait until WS shows **connected**
 2. Go available → Ping location
-3. **Request offer** — offer appears over STOMP with a 15s countdown
-4. Accept, or wait / Reject to see reassignment to another pinged driver
+3. **Book ride** — creates a `REQUESTED` row and pushes a STOMP offer (15s countdown)
+4. Accept → ride becomes `MATCHED`, or Reject / wait to see reassignment
+5. Cancel (rider) while still pre-trip if you want a clean slate
 
 Postgres: `localhost:5432`, database / user / password `botcab`. Redis: `localhost:6380`.
