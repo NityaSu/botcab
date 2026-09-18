@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 4 done: `POST /rides`, accept → MATCHED, cancel, `@Version` |
+| **Now** | Phase 5 in progress: fare calculator + surge (integer KHR) |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
