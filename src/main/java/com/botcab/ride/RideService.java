@@ -118,7 +118,8 @@ public class RideService {
     }
 
     /**
-     * {@code IN_PROGRESS → COMPLETED}, persist fare from haversine pickup→dropoff, free driver.
+     * {@code IN_PROGRESS → COMPLETED}, persist fare from haversine pickup→dropoff
+     * with live demand surge, then free driver.
      */
     @Transactional
     public RideResponse complete(long rideId) {
@@ -131,7 +132,9 @@ public class RideService {
                 ride.getPickupLng().doubleValue(),
                 ride.getDropoffLat().doubleValue(),
                 ride.getDropoffLng().doubleValue());
-        FareView fare = FareView.from(fares.createForRide(ride.getId(), distanceKm));
+        // Driver is still BUSY here, so they count toward demand before release.
+        double demandRatio = drivers.demandRatio();
+        FareView fare = FareView.from(fares.createForRide(ride.getId(), distanceKm, demandRatio));
 
         Long driverId = ride.getDriverId();
         if (driverId != null) {

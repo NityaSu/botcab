@@ -21,17 +21,21 @@ public class FareCalculator {
         this.surge = surge;
     }
 
-    /** Quote with no surge (multiplier 1.0). */
+    /** Quote with no surge (multiplier 1.0, demand 1.0). */
     public FareQuote quote(double distanceKm) {
-        return quote(distanceKm, 1.0);
+        return quote(distanceKm, 1.0, 1.0);
     }
 
-    /** Quote using {@link SurgePolicy} from a demand ratio (busy drivers / free drivers). */
+    /** Quote using {@link SurgePolicy} from a demand ratio (busy ÷ available). */
     public FareQuote quoteForDemand(double distanceKm, double demandRatio) {
-        return quote(distanceKm, surge.multiplier(demandRatio));
+        return quote(distanceKm, surge.multiplier(demandRatio), demandRatio);
     }
 
     public FareQuote quote(double distanceKm, double surgeMultiplier) {
+        return quote(distanceKm, surgeMultiplier, 0);
+    }
+
+    public FareQuote quote(double distanceKm, double surgeMultiplier, double demandRatio) {
         if (distanceKm < 0) {
             throw new IllegalArgumentException("distanceKm must be >= 0");
         }
@@ -42,6 +46,7 @@ public class FareCalculator {
         return new FareQuote(
                 distanceKm,
                 surgeMultiplier,
+                demandRatio,
                 BASE_CENTS,
                 PER_KM_CENTS,
                 total,

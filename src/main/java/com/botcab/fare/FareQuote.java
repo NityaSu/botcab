@@ -6,6 +6,7 @@ package com.botcab.fare;
 public record FareQuote(
         double distanceKm,
         double surgeMultiplier,
+        double demandRatio,
         long baseCents,
         long perKmCents,
         long totalCents,

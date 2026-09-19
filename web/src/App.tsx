@@ -21,6 +21,7 @@ type FareView = {
   currency: string;
   distanceKm: number | null;
   surgeMultiplier: number | null;
+  demandRatio: number | null;
 };
 
 type RideResponse = {
@@ -253,6 +254,12 @@ export default function App() {
               · fare {ride.fare.totalCents} {ride.fare.currency}
               {ride.fare.distanceKm != null
                 ? ` (${ride.fare.distanceKm.toFixed(2)} km)`
+                : ""}
+              {ride.fare.surgeMultiplier != null && ride.fare.surgeMultiplier !== 1
+                ? ` · ${ride.fare.surgeMultiplier}× surge`
+                : ""}
+              {ride.fare.demandRatio != null
+                ? ` · demand ${ride.fare.demandRatio.toFixed(2)}`
                 : ""}
             </>
           )}

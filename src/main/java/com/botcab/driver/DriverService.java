@@ -75,4 +75,17 @@ public class DriverService {
     public List<NearbyDriver> nearby(double lat, double lng, double radiusKm, int limit) {
         return locations.nearby(lat, lng, radiusKm, limit);
     }
+
+    /**
+     * Busy drivers ÷ available drivers. Used for surge at fare time.
+     * No free drivers while some are busy → max band (2.5). Idle fleet → 1.0.
+     */
+    public double demandRatio() {
+        long available = drivers.countByStatus(DriverStatus.AVAILABLE);
+        long busy = drivers.countByStatus(DriverStatus.BUSY);
+        if (available == 0) {
+            return busy == 0 ? 1.0 : 2.5;
+        }
+        return (double) busy / (double) available;
+    }
 }

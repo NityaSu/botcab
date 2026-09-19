@@ -5,10 +5,11 @@ public record FareView(
         long totalCents,
         String currency,
         Double distanceKm,
-        Double surgeMultiplier
+        Double surgeMultiplier,
+        Double demandRatio
 ) {
     public static FareView from(Fare fare) {
-        return new FareView(fare.getTotalCents(), fare.getCurrency(), null, null);
+        return new FareView(fare.getTotalCents(), fare.getCurrency(), null, null, null);
     }
 
     public static FareView from(FareQuote quote) {
@@ -16,6 +17,7 @@ public record FareView(
                 quote.totalCents(),
                 quote.currency(),
                 quote.distanceKm(),
-                quote.surgeMultiplier());
+                quote.surgeMultiplier(),
+                quote.demandRatio());
     }
 }

@@ -44,8 +44,10 @@ class FareCalculatorTest {
     @Test
     void demandRatioMapsThroughSurgePolicy() {
         assertEquals(1.0, calculator.quoteForDemand(1.0, 1.0).surgeMultiplier());
+        assertEquals(1.0, calculator.quoteForDemand(1.0, 1.0).demandRatio());
         assertEquals(1.5, calculator.quoteForDemand(1.0, 1.5).surgeMultiplier());
         assertEquals(2.0, calculator.quoteForDemand(1.0, 2.5).surgeMultiplier());
+        assertEquals(2.5, calculator.quoteForDemand(1.0, 2.5).demandRatio());
         // (4000 + 2000) * 2 = 12000
         assertEquals(12_000L, calculator.quoteForDemand(1.0, 2.5).totalCents());
     }

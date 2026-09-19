@@ -128,15 +128,18 @@ class RideServiceTest {
         ride.startTrip(Instant.now());
         when(rides.findById(11L)).thenReturn(java.util.Optional.of(ride));
         when(rides.save(any(Ride.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(fares.createForRide(eq(11L), anyDouble()))
-                .thenReturn(new FareQuote(1.2, 1.0, 4000, 2000, 6400, "KHR"));
+        when(fares.createForRide(eq(11L), anyDouble(), anyDouble()))
+                .thenReturn(new FareQuote(1.2, 1.5, 2.0, 4000, 2000, 9600, "KHR"));
+        when(drivers.demandRatio()).thenReturn(2.0);
 
         RideResponse response = service.complete(11L);
 
         assertEquals(RideStatus.COMPLETED, response.status());
         assertNotNull(response.fare());
-        assertEquals(6400L, response.fare().totalCents());
-        verify(fares).createForRide(eq(11L), anyDouble());
+        assertEquals(9600L, response.fare().totalCents());
+        assertEquals(1.5, response.fare().surgeMultiplier());
+        assertEquals(2.0, response.fare().demandRatio());
+        verify(fares).createForRide(eq(11L), anyDouble(), eq(2.0));
         verify(drivers).releaseOffer(3L);
     }
 
