@@ -1,6 +1,8 @@
 package com.botcab.ride;
 
 import com.botcab.driver.DriverService;
+import com.botcab.fare.FareQuote;
+import com.botcab.fare.FareService;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
 import com.botcab.matching.OfferStatus;
@@ -18,7 +20,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +44,9 @@ class RideServiceTest {
     OfferService offers;
 
     @Mock
+    FareService fares;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -48,7 +56,7 @@ class RideServiceTest {
         org.mockito.Mockito.lenient()
                 .when(txManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus());
-        service = new RideService(rides, riders, drivers, offers, txManager);
+        service = new RideService(rides, riders, drivers, offers, fares, txManager);
     }
 
     @Test
@@ -104,6 +112,32 @@ class RideServiceTest {
 
         assertEquals(RideStatus.MATCHED, matched.getStatus());
         assertEquals(3L, matched.getDriverId());
+    }
+
+    @Test
+    void completePersistsFareAndReleasesDriver() {
+        Ride ride = new Ride(
+                1L,
+                BigDecimal.valueOf(11.55),
+                BigDecimal.valueOf(104.92),
+                BigDecimal.valueOf(11.56),
+                BigDecimal.valueOf(104.93));
+        setId(ride, 11L);
+        ride.assignDriver(3L, Instant.now());
+        ride.markEnRoute();
+        ride.startTrip(Instant.now());
+        when(rides.findById(11L)).thenReturn(java.util.Optional.of(ride));
+        when(rides.save(any(Ride.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(fares.createForRide(eq(11L), anyDouble()))
+                .thenReturn(new FareQuote(1.2, 1.0, 4000, 2000, 6400, "KHR"));
+
+        RideResponse response = service.complete(11L);
+
+        assertEquals(RideStatus.COMPLETED, response.status());
+        assertNotNull(response.fare());
+        assertEquals(6400L, response.fare().totalCents());
+        verify(fares).createForRide(eq(11L), anyDouble());
+        verify(drivers).releaseOffer(3L);
     }
 
     private static void setId(Ride ride, long id) {

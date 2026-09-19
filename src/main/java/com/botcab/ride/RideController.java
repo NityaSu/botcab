@@ -47,4 +47,20 @@ public class RideController {
             @PathVariable("id") long id, @Valid @RequestBody CancelRideRequest body) {
         return rides.cancel(id, body);
     }
+
+    @PostMapping("/{id}/en-route")
+    public RideResponse enRoute(@PathVariable("id") long id) {
+        return rides.markEnRoute(id);
+    }
+
+    @PostMapping("/{id}/start")
+    public RideResponse start(@PathVariable("id") long id) {
+        return rides.startTrip(id);
+    }
+
+    /** Complete trip and persist fare (haversine pickup→dropoff, integer KHR). */
+    @PostMapping("/{id}/complete")
+    public RideResponse complete(@PathVariable("id") long id) {
+        return rides.complete(id);
+    }
 }

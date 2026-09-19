@@ -1,5 +1,7 @@
 package com.botcab.common;
 
+import com.botcab.fare.FareAlreadyExistsException;
+import com.botcab.fare.FareNotFoundException;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferNotFoundException;
 import com.botcab.ride.IllegalRideTransitionException;
@@ -29,8 +31,8 @@ public class RestExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(RideNotFoundException.class)
-    public ResponseEntity<Map<String, String>> noRide(RideNotFoundException ex) {
+    @ExceptionHandler({RideNotFoundException.class, FareNotFoundException.class})
+    public ResponseEntity<Map<String, String>> notFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", ex.getMessage()));
     }
@@ -38,6 +40,7 @@ public class RestExceptionHandler {
     @ExceptionHandler({
             IllegalRideTransitionException.class,
             RideCancelNotAllowedException.class,
+            FareAlreadyExistsException.class,
             OptimisticLockingFailureException.class
     })
     public ResponseEntity<Map<String, String>> conflict(RuntimeException ex) {

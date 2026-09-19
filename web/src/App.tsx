@@ -16,6 +16,13 @@ type OfferMessage = {
   note: string;
 };
 
+type FareView = {
+  totalCents: number;
+  currency: string;
+  distanceKm: number | null;
+  surgeMultiplier: number | null;
+};
+
 type RideResponse = {
   id: number;
   riderId: number;
@@ -27,6 +34,7 @@ type RideResponse = {
   dropoffLng: number;
   version: number;
   offer: OfferMessage | null;
+  fare: FareView | null;
 };
 
 async function post(path: string, body?: unknown) {
@@ -132,7 +140,8 @@ export default function App() {
     <main style={{ fontFamily: "sans-serif", maxWidth: 560, margin: "2rem auto" }}>
       <h1>BotCab — driver sim</h1>
       <p>
-        Phase 4: book a ride → STOMP offer → accept = MATCHED. WS: <strong>{wsState}</strong>
+        Phase 5: book → accept → en route → start → complete (fare in KHR). WS:{" "}
+        <strong>{wsState}</strong>
       </p>
 
       <form onSubmit={onPing}>
@@ -238,6 +247,72 @@ export default function App() {
       {ride && (
         <p>
           Ride <strong>{ride.id}</strong> · {ride.status} · v{ride.version}
+          {ride.fare && (
+            <>
+              {" "}
+              · fare {ride.fare.totalCents} {ride.fare.currency}
+              {ride.fare.distanceKm != null
+                ? ` (${ride.fare.distanceKm.toFixed(2)} km)`
+                : ""}
+            </>
+          )}
+          {ride.status === "MATCHED" && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() =>
+                  run("en-route", async () => {
+                    const body = (await post(
+                      `/api/rides/${ride.id}/en-route`
+                    )) as RideResponse;
+                    setRide(body);
+                    return body;
+                  })
+                }
+              >
+                En route
+              </button>
+            </>
+          )}
+          {ride.status === "DRIVER_EN_ROUTE" && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() =>
+                  run("start", async () => {
+                    const body = (await post(
+                      `/api/rides/${ride.id}/start`
+                    )) as RideResponse;
+                    setRide(body);
+                    return body;
+                  })
+                }
+              >
+                Start trip
+              </button>
+            </>
+          )}
+          {ride.status === "IN_PROGRESS" && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() =>
+                  run("complete", async () => {
+                    const body = (await post(
+                      `/api/rides/${ride.id}/complete`
+                    )) as RideResponse;
+                    setRide(body);
+                    return body;
+                  })
+                }
+              >
+                Complete
+              </button>
+            </>
+          )}
           {ride.status !== "COMPLETED" && ride.status !== "CANCELLED" && (
             <>
               {" "}

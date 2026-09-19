@@ -1,6 +1,9 @@
 package com.botcab.ride;
 
+import com.botcab.common.Haversine;
 import com.botcab.driver.DriverService;
+import com.botcab.fare.FareService;
+import com.botcab.fare.FareView;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
@@ -29,6 +32,7 @@ public class RideService {
     private final RiderService riders;
     private final DriverService drivers;
     private final OfferService offers;
+    private final FareService fares;
     private final TransactionTemplate tx;
 
     public RideService(
@@ -36,11 +40,13 @@ public class RideService {
             RiderService riders,
             DriverService drivers,
             OfferService offers,
+            FareService fares,
             PlatformTransactionManager transactionManager) {
         this.rides = rides;
         this.riders = riders;
         this.drivers = drivers;
         this.offers = offers;
+        this.fares = fares;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -72,7 +78,9 @@ public class RideService {
     }
 
     public RideResponse get(long rideId) {
-        return RideResponse.from(require(rideId));
+        Ride ride = require(rideId);
+        FareView fare = fares.findByRideId(rideId).map(FareView::from).orElse(null);
+        return RideResponse.from(ride, null, fare);
     }
 
     /**
@@ -93,6 +101,43 @@ public class RideService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Driver already has an active ride", ex);
         }
+    }
+
+    @Transactional
+    public RideResponse markEnRoute(long rideId) {
+        Ride ride = require(rideId);
+        ride.markEnRoute();
+        return RideResponse.from(rides.save(ride));
+    }
+
+    @Transactional
+    public RideResponse startTrip(long rideId) {
+        Ride ride = require(rideId);
+        ride.startTrip(Instant.now());
+        return RideResponse.from(rides.save(ride));
+    }
+
+    /**
+     * {@code IN_PROGRESS → COMPLETED}, persist fare from haversine pickup→dropoff, free driver.
+     */
+    @Transactional
+    public RideResponse complete(long rideId) {
+        Ride ride = require(rideId);
+        ride.complete(Instant.now());
+        rides.save(ride);
+
+        double distanceKm = Haversine.km(
+                ride.getPickupLat().doubleValue(),
+                ride.getPickupLng().doubleValue(),
+                ride.getDropoffLat().doubleValue(),
+                ride.getDropoffLng().doubleValue());
+        FareView fare = FareView.from(fares.createForRide(ride.getId(), distanceKm));
+
+        Long driverId = ride.getDriverId();
+        if (driverId != null) {
+            drivers.releaseOffer(driverId);
+        }
+        return RideResponse.from(ride, null, fare);
     }
 
     @Transactional

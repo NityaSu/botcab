@@ -105,6 +105,23 @@ public class Ride {
         this.endedAt = endedAt;
     }
 
+    /** {@code MATCHED → DRIVER_EN_ROUTE}. */
+    public void markEnRoute() {
+        transitionTo(RideStatus.DRIVER_EN_ROUTE);
+    }
+
+    /** {@code DRIVER_EN_ROUTE → IN_PROGRESS}. */
+    public void startTrip(Instant startedAt) {
+        transitionTo(RideStatus.IN_PROGRESS);
+        this.startedAt = startedAt;
+    }
+
+    /** {@code IN_PROGRESS → COMPLETED}. */
+    public void complete(Instant endedAt) {
+        transitionTo(RideStatus.COMPLETED);
+        this.endedAt = endedAt;
+    }
+
     public Long getId() {
         return id;
     }

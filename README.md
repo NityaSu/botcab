@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 5 in progress: fare calculator + surge (integer KHR) |
+| **Now** | Phase 5: fare on complete (en-route → start → complete) |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -51,6 +51,7 @@ Open `http://localhost:5173`. Demo drivers are ids **1, 2, 3**; demo rider is id
 2. Go available → Ping location
 3. **Book ride** — creates a `REQUESTED` row and pushes a STOMP offer (15s countdown)
 4. Accept → ride becomes `MATCHED`, or Reject / wait to see reassignment
-5. Cancel (rider) while still pre-trip if you want a clean slate
+5. **En route** → **Start trip** → **Complete** — fare (KHR) appears on the ride
+6. Cancel (rider) while still pre-trip if you want a clean slate
 
 Postgres: `localhost:5432`, database / user / password `botcab`. Redis: `localhost:6380`.
