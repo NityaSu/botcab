@@ -14,10 +14,18 @@ RUN ./mvnw -q -DskipTests package \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN addgroup -S botcab && adduser -S botcab -G botcab
+RUN apk add --no-cache curl \
+    && addgroup -S botcab && adduser -S botcab -G botcab
+
 USER botcab
 
 COPY --from=build /workspace/app.jar /app/app.jar
 
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
