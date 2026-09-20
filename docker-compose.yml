@@ -9,11 +9,37 @@ services:
       - "5432:5432"
     volumes:
       - botcab_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botcab -d botcab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
     ports:
       - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/botcab
+      SPRING_DATASOURCE_USERNAME: botcab
+      SPRING_DATASOURCE_PASSWORD: botcab
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   botcab_pg:

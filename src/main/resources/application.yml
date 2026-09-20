@@ -2,9 +2,9 @@ spring:
   application:
     name: botcab
   datasource:
-    url: jdbc:postgresql://localhost:5432/botcab
-    username: botcab
-    password: botcab
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/botcab}
+    username: ${SPRING_DATASOURCE_USERNAME:botcab}
+    password: ${SPRING_DATASOURCE_PASSWORD:botcab}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -17,11 +17,11 @@ spring:
     enabled: true
   data:
     redis:
-      host: localhost
-      port: 6380
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6380}
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 management:
   endpoints:

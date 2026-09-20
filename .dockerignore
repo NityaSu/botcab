@@ -1,0 +1,14 @@
+.git
+.cursor
+.idea
+*.iml
+.vscode
+.DS_Store
+target/
+web/node_modules/
+web/dist/
+load/
+*.log
+.env
+.env.*
+!.env.example
