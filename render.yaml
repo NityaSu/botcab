@@ -1,0 +1,58 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Dashboard: New → Blueprint → connect this repo.
+#
+# After create: set SPRING_DATASOURCE_URL to a JDBC URL.
+# Render's Internal Database URL looks like:
+#   postgresql://user:pass@host/db
+# Convert to:
+#   jdbc:postgresql://user:pass@host/db
+
+databases:
+  - name: botcab-db
+    plan: free
+    databaseName: botcab
+    user: botcab
+
+services:
+  - type: keyvalue
+    name: botcab-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: botcab-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_DATA_REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: botcab-redis
+          property: host
+      - key: SPRING_DATA_REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: botcab-redis
+          property: port
+      - key: SPRING_DATA_REDIS_PASSWORD
+        fromService:
+          type: keyvalue
+          name: botcab-redis
+          property: password
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: botcab-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: botcab-db
+          property: password
+      # Set manually after first deploy (jdbc:postgresql://...).
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=75.0

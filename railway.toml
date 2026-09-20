@@ -1,0 +1,13 @@
+# Railway — https://docs.railway.com/guides/dockerfiles
+# Create a project, add Postgres + Redis plugins, then deploy this service from the repo.
+# Map env vars from the plugins to SPRING_* (see DEPLOY.md).
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/actuator/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
