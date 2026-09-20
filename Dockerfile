@@ -26,6 +26,6 @@ ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
+  CMD curl -fsS http://localhost:8080/actuator/health/liveness || exit 1
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

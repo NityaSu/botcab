@@ -26,7 +26,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
-    healthCheckPath: /actuator/health
+    healthCheckPath: /actuator/health/liveness
     envVars:
       - key: SPRING_DATA_REDIS_HOST
         fromService:

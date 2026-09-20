@@ -7,7 +7,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/actuator/health"
+# Liveness only — app process is up. Avoids flaky Redis/DB probes killing the deploy.
+healthcheckPath = "/actuator/health/liveness"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5

@@ -21,8 +21,9 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6380}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
 
+# Railway/Render set PORT; local Compose uses SERVER_PORT or 8080.
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:${SERVER_PORT:8080}}
 
 management:
   endpoints:
@@ -32,6 +33,9 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+      # Liveness = process up (for platform healthchecks). Readiness still includes DB/Redis.
+      probes:
+        enabled: true
   info:
     env:
       enabled: true
