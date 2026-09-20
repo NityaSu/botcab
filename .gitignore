@@ -14,4 +14,5 @@ web/node_modules/
 web/dist/
 .cursor/
 AGENTS.md
+DEPLOY.md
 docs/

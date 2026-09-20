@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 7 in progress: Docker image + full-stack Compose |
+| **Now** | Phase 7 done: Docker Compose + Render/Railway deploy configs |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -19,7 +19,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | Location | Redis 7 GEO + Redisson locks |
 | Realtime | STOMP over `/ws` (in-memory broker) |
 | Load | k6 scripts in `/load` |
-| Deploy | Docker / Compose (Railway or Render later) |
+| Deploy | Docker Compose locally; Render Blueprint / Railway
 | Frontend | React 19 + Vite + TypeScript in `/web` (driver-sim) |
 
 ## Packages
@@ -59,7 +59,8 @@ Then:
 curl -s http://localhost:8080/actuator/health
 ```
 
-Postgres / Redis / the Spring app all run as Compose services. Config is env-driven (`SPRING_DATASOURCE_*`, `SPRING_DATA_REDIS_*`).
+Postgres / Redis / the Spring app all run as Compose services. Config is env-driven (`SPRING_DATASOURCE_*`, `SPRING_DATA_REDIS_*`). See `.env.example`.
+
 
 ### Observability (Phase 6)
 
