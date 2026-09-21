@@ -2,14 +2,13 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 
 /**
- * Book then cancel so the rider stays free for the next iteration.
- * One active ride per rider — keep VUs at 1 (or the unique-index will 409).
- *
- * Prep: driver 1 available + pinged; rider id exists (demo rider, often id 2).
+ * Login as demo rider, book, then cancel (JWT).
+ * Prep: driver 1 available + pinged; demo rider phone +855000000101 / password demo.
  */
 const BASE = __ENV.BASE_URL || "http://localhost:8080";
-const RIDER_ID = Number(__ENV.RIDER_ID || 2);
 const DRIVER_ID = Number(__ENV.DRIVER_ID || 1);
+const RIDER_PHONE = __ENV.RIDER_PHONE || "+855000000101";
+const RIDER_PASSWORD = __ENV.RIDER_PASSWORD || "demo";
 const PNH = { lat: 11.5564, lng: 104.9282 };
 
 export const options = {
@@ -29,24 +28,33 @@ export function setup() {
     { headers: { "Content-Type": "application/json" } }
   );
   check(ping, { "setup ping ok": (r) => r.status === 204 || r.status === 200 });
-  return {};
+
+  const login = http.post(
+    `${BASE}/api/auth/login`,
+    JSON.stringify({ phone: RIDER_PHONE, password: RIDER_PASSWORD }),
+    { headers: { "Content-Type": "application/json" } }
+  );
+  check(login, { "login 200": (r) => r.status === 200 });
+  const token = login.status === 200 ? JSON.parse(login.body).token : null;
+  return { token };
 }
 
-export default function () {
-  const headers = { "Content-Type": "application/json" };
+export default function (data) {
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${data.token}`,
+  };
 
-  // Ensure driver can be matched again after a prior busy state.
   http.post(`${BASE}/api/drivers/${DRIVER_ID}/available`);
   http.post(
     `${BASE}/api/drivers/${DRIVER_ID}/location`,
     JSON.stringify({ lat: PNH.lat, lng: PNH.lng }),
-    { headers }
+    { headers: { "Content-Type": "application/json" } }
   );
 
   const book = http.post(
     `${BASE}/api/rides`,
     JSON.stringify({
-      riderId: RIDER_ID,
       pickupLat: PNH.lat,
       pickupLng: PNH.lng,
       dropoffLat: PNH.lat + 0.01,
@@ -71,15 +79,11 @@ export default function () {
     http.post(
       `${BASE}/api/rides/${rideId}/accept`,
       JSON.stringify({ driverId: DRIVER_ID }),
-      { headers }
+      { headers: { "Content-Type": "application/json" } }
     );
   }
 
-  const cancel = http.post(
-    `${BASE}/api/rides/${rideId}/cancel`,
-    JSON.stringify({ cancelledBy: "RIDER", actorId: RIDER_ID }),
-    { headers }
-  );
+  const cancel = http.post(`${BASE}/api/rides/${rideId}/cancel`, null, { headers });
   check(cancel, {
     "cancel 200": (r) => r.status === 200,
   });
