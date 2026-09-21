@@ -2,8 +2,9 @@ package com.botcab.rider;
 
 public record AuthResponse(
         String token,
-        long riderId,
+        long userId,
         String fullName,
-        String phone
+        String phone,
+        String role
 ) {
 }

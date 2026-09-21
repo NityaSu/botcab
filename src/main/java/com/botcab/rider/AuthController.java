@@ -1,6 +1,6 @@
 package com.botcab.rider;
 
-import com.botcab.common.auth.RiderPrincipal;
+import com.botcab.common.auth.AuthPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +30,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public RiderMeResponse me() {
-        return auth.me(RiderPrincipal.current().orElseThrow(() ->
-                new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.UNAUTHORIZED, "Login required")));
+        return auth.me(AuthPrincipal.require());
     }
 }

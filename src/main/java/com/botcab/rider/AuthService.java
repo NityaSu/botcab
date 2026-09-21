@@ -1,7 +1,8 @@
 package com.botcab.rider;
 
+import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.JwtService;
-import com.botcab.common.auth.RiderPrincipal;
+import com.botcab.common.auth.Role;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,13 +43,21 @@ public class AuthService {
         return toAuth(rider);
     }
 
-    public RiderMeResponse me(RiderPrincipal principal) {
-        Rider rider = riders.findById(principal.riderId())
+    public RiderMeResponse me(AuthPrincipal principal) {
+        if (principal.role() != Role.RIDER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Rider login required");
+        }
+        Rider rider = riders.findById(principal.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required"));
         return new RiderMeResponse(rider.getId(), rider.getFullName(), rider.getPhone());
     }
 
     private AuthResponse toAuth(Rider rider) {
-        return new AuthResponse(jwt.sign(rider), rider.getId(), rider.getFullName(), rider.getPhone());
+        return new AuthResponse(
+                jwt.sign(rider.getId(), rider.getPhone(), rider.getFullName(), Role.RIDER),
+                rider.getId(),
+                rider.getFullName(),
+                rider.getPhone(),
+                Role.RIDER.name());
     }
 }

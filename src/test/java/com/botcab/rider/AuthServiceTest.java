@@ -38,9 +38,10 @@ class AuthServiceTest {
         when(riders.findByPhone("+855000000101")).thenReturn(Optional.of(rider));
 
         AuthResponse res = auth.login(new LoginRequest("+855000000101", "demo"));
-        assertEquals(1L, res.riderId());
+        assertEquals(1L, res.userId());
         assertEquals("Maya", res.fullName());
         assertEquals("+855000000101", res.phone());
+        assertEquals("RIDER", res.role());
         org.junit.jupiter.api.Assertions.assertFalse(res.token().isBlank());
     }
 
