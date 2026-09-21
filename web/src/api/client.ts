@@ -1,10 +1,31 @@
+const TOKEN_KEY = "botcab.riderToken";
+
+let authToken: string | null =
+  typeof localStorage !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+export function getToken(): string | null {
+  return authToken;
+}
+
+export function setToken(token: string | null) {
+  authToken = token;
+  if (typeof localStorage === "undefined") return;
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
   const res = await fetch(path, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
   const text = await res.text();
   if (!res.ok) {

@@ -83,7 +83,9 @@ export const PLACES: Place[] = [
   },
 ];
 
-/** Seeded by Flyway V4 (`Demo Rider Maya`). */
-export const DEFAULT_RIDER_ID = 1;
 /** Seeded by Flyway V2 (`Demo Driver Sophea`). */
 export const DEFAULT_DRIVER_ID = 1;
+
+/** Demo rider (V4 + V6): phone +855000000101 / password demo */
+export const DEMO_RIDER_PHONE = "+855000000101";
+export const DEMO_RIDER_PASSWORD = "demo";

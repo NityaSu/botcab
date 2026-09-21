@@ -2,23 +2,16 @@ import { api } from "./client";
 import type { OfferMessage, RideResponse } from "./types";
 
 export type BookRideBody = {
-  riderId: number;
   pickupLat: number;
   pickupLng: number;
   dropoffLat: number;
   dropoffLng: number;
 };
 
-export type CancelBody = {
-  cancelledBy: "RIDER" | "DRIVER" | "SYSTEM";
-  actorId: number;
-};
-
 export const ridesApi = {
   book: (body: BookRideBody) => api.post<RideResponse>("/api/rides", body),
   get: (id: number) => api.get<RideResponse>(`/api/rides/${id}`),
-  cancel: (id: number, body: CancelBody) =>
-    api.post<RideResponse>(`/api/rides/${id}/cancel`, body),
+  cancel: (id: number) => api.post<RideResponse>(`/api/rides/${id}/cancel`),
   enRoute: (id: number) => api.post<RideResponse>(`/api/rides/${id}/en-route`),
   start: (id: number) => api.post<RideResponse>(`/api/rides/${id}/start`),
   complete: (id: number) => api.post<RideResponse>(`/api/rides/${id}/complete`),
