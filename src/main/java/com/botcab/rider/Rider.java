@@ -21,7 +21,16 @@ public class Rider {
     @Column(name = "phone", nullable = false)
     private String phone;
 
+    @Column(name = "password_hash", nullable = false, length = 100)
+    private String passwordHash;
+
     protected Rider() {
+    }
+
+    public Rider(String fullName, String phone, String passwordHash) {
+        this.fullName = fullName;
+        this.phone = phone;
+        this.passwordHash = passwordHash;
     }
 
     public Long getId() {
@@ -34,5 +43,9 @@ public class Rider {
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
     }
 }
