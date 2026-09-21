@@ -19,11 +19,18 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6380}
+      # Only set when Redis has a password (e.g. Railway). Blank "" makes Redisson AUTH fail locally.
       password: ${SPRING_DATA_REDIS_PASSWORD:}
 
 # Railway/Render set PORT; local Compose uses SERVER_PORT or 8080.
 server:
   port: ${PORT:${SERVER_PORT:8080}}
+
+botcab:
+  jwt:
+    # Override in production (Railway): BOTCAB_JWT_SECRET — min 32 chars.
+    secret: ${BOTCAB_JWT_SECRET:botcab-dev-jwt-secret-change-me-32b}
+    ttl-days: ${BOTCAB_JWT_TTL_DAYS:7}
 
 management:
   endpoints:
