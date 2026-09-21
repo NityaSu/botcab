@@ -631,6 +631,32 @@ body {
   }
 }
 
+.bc-landing {
+  padding: 28px 20px 36px;
+  max-width: 420px;
+}
+
+.bc-landing-title {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--bc-pri);
+}
+
+.bc-landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bc-landing-actions .bc-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 720px) {
   .bc-layout {
     grid-template-columns: 1fr;

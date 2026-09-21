@@ -22,9 +22,6 @@ type Props = {
   onPickPlace: (place: Place) => void;
   onBackIdle: () => void;
   onRequest: () => void;
-  onEnRoute: () => void;
-  onStart: () => void;
-  onComplete: () => void;
   onCancel: () => void;
   onBookAgain: () => void;
   places: Place[];
@@ -41,9 +38,6 @@ export function RiderPanel({
   onPickPlace,
   onBackIdle,
   onRequest,
-  onEnRoute,
-  onStart,
-  onComplete,
   onCancel,
   onBookAgain,
   places,
@@ -119,8 +113,7 @@ export function RiderPanel({
           <div className="bc-steer" aria-hidden />
           <div className="bc-title">Finding your driver…</div>
           <div className="bc-meta bc-find-meta">
-            GEOSEARCH radius expanding: 300 m → 500 m
-            <br />→ 1 km
+            Waiting for a driver to accept
             {ride && (
               <>
                 <br />
@@ -134,80 +127,34 @@ export function RiderPanel({
         </div>
       )}
 
-      {ui === "MATCHED" && (
+      {(ui === "MATCHED" || ui === "ENROUTE" || ui === "TRIP") && (
         <div className="bc-fade">
-          <div className="bc-chip bc-chip-pos">Driver matched</div>
+          <div className="bc-chip bc-chip-pos">
+            {ui === "MATCHED" && "Driver matched"}
+            {ui === "ENROUTE" && "Driver en route"}
+            {ui === "TRIP" && "Trip in progress"}
+          </div>
           <div className="bc-driver">
             <div className="bc-avatar">D</div>
             <div className="bc-grow">
-              <div className="bc-product-name">Dara P.</div>
+              <div className="bc-product-name">Your driver</div>
               <div className="bc-stars">
                 <StarIcon />
-                <span>4.9 · driver #{ride?.driverId ?? "—"}</span>
-              </div>
-            </div>
-            <div className="bc-right">
-              <div className="bc-plate">2A-1234</div>
-              <div className="bc-meta" style={{ marginTop: 4 }}>
-                Toyota Corolla · White
+                <span>driver #{ride?.driverId ?? "—"}</span>
               </div>
             </div>
           </div>
           <div className="bc-meta" style={{ marginBottom: 8 }}>
-            Arriving in about 3 min
+            Status updates as your driver advances the trip
           </div>
           <div className="bc-bar" style={{ marginBottom: 16 }}>
             <i style={{ width: `${Math.max(12, progress)}%` }} />
           </div>
-          <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onEnRoute}>
-            Driver is on the way
-          </button>
-          <button type="button" className="bc-btn bc-btn-ghost" disabled={busy} onClick={onCancel}>
-            Cancel · free within 2 min
-          </button>
-        </div>
-      )}
-
-      {ui === "ENROUTE" && (
-        <div className="bc-fade">
-          <div className="bc-title">Dara is heading to you</div>
-          <div className="bc-meta" style={{ marginBottom: 8 }}>
-            Pickup: {place?.detail ?? "BKK1"} · en route
-          </div>
-          <div className="bc-bar" style={{ marginBottom: 16 }}>
-            <i style={{ width: `${progress}%` }} />
-          </div>
-          <div className="bc-legend">
-            <span>
-              <i className="bc-dot" />
-              You
-            </span>
-            <span>
-              <i className="bc-pin" />
-              Wat Phnom
-            </span>
-          </div>
-          <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onStart}>
-            Dara arrived · start trip
-          </button>
-        </div>
-      )}
-
-      {ui === "TRIP" && (
-        <div className="bc-fade">
-          <div className="bc-title">Heading to Wat Phnom</div>
-          <div className="bc-meta" style={{ marginBottom: 8 }}>
-            Ride #{ride?.id} · {ride?.status}
-          </div>
-          <div className="bc-bar" style={{ marginBottom: 16 }}>
-            <i style={{ width: `${progress}%` }} />
-          </div>
-          <div className="bc-eta-line">
-            ETA <span>~12 min</span> · fare locked on complete
-          </div>
-          <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onComplete}>
-            Complete trip
-          </button>
+          {ui === "MATCHED" && (
+            <button type="button" className="bc-btn bc-btn-ghost" disabled={busy} onClick={onCancel}>
+              Cancel ride
+            </button>
+          )}
         </div>
       )}
 
@@ -217,26 +164,11 @@ export function RiderPanel({
             <CheckIcon />
           </div>
           <div className="bc-title">You have arrived</div>
-          <div className="bc-meta" style={{ marginBottom: 16 }}>
-            Rate Dara · ★★★★★
-          </div>
           <div className="bc-receipt">
             {fare?.distanceKm != null && (
               <div className="bc-receipt-row">
                 <span>Distance</span>
                 <span>{formatDistanceKm(fare.distanceKm)}</span>
-              </div>
-            )}
-            {fare?.surgeMultiplier != null && fare.surgeMultiplier !== 1 && (
-              <div className="bc-receipt-row">
-                <span>Surge</span>
-                <span>×{fare.surgeMultiplier.toFixed(2)}</span>
-              </div>
-            )}
-            {fare?.demandRatio != null && (
-              <div className="bc-receipt-row">
-                <span>Demand ratio</span>
-                <span>{fare.demandRatio.toFixed(2)}</span>
               </div>
             )}
             <div className="bc-receipt-total">

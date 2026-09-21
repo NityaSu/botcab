@@ -1,16 +1,27 @@
 import { FormEvent, useState } from "react";
 
 type Props = {
+  title: string;
+  demoHint: string;
+  defaultPhone?: string;
   busy: boolean;
   error: string | null;
   onLogin: (phone: string, password: string) => void;
   onRegister: (fullName: string, phone: string, password: string) => void;
 };
 
-export function AuthPanel({ busy, error, onLogin, onRegister }: Props) {
+export function AuthPanel({
+  title,
+  demoHint,
+  defaultPhone = "",
+  busy,
+  error,
+  onLogin,
+  onRegister,
+}: Props) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("+855000000101");
+  const [phone, setPhone] = useState(defaultPhone);
   const [password, setPassword] = useState("demo");
 
   function submit(e: FormEvent) {
@@ -22,12 +33,8 @@ export function AuthPanel({ busy, error, onLogin, onRegister }: Props) {
   return (
     <div className="bc-panel">
       <div className="bc-fade">
-        <div className="bc-title">{mode === "login" ? "Rider login" : "Create rider account"}</div>
-        <div className="bc-meta bc-mb16">
-          Same pattern as AutoWallet — phone + password, JWT for booking.
-          <br />
-          Demo: +855000000101 / demo
-        </div>
+        <div className="bc-title">{mode === "login" ? title : `Create account`}</div>
+        <div className="bc-meta bc-mb16">{demoHint}</div>
         {error && <div className="bc-error">{error}</div>}
         <form onSubmit={submit}>
           {mode === "register" && (
@@ -38,7 +45,6 @@ export function AuthPanel({ busy, error, onLogin, onRegister }: Props) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                autoComplete="name"
               />
             </label>
           )}
@@ -49,7 +55,6 @@ export function AuthPanel({ busy, error, onLogin, onRegister }: Props) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
-              autoComplete="tel"
             />
           </label>
           <label className="bc-field">
@@ -61,7 +66,6 @@ export function AuthPanel({ busy, error, onLogin, onRegister }: Props) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={4}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </label>
           <button type="submit" className="bc-btn bc-btn-pri" disabled={busy}>

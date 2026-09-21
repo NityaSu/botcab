@@ -2,9 +2,19 @@ import type { OfferMessage, RideResponse } from "../api/types";
 import { formatDistanceKm, formatKhr, shortPlace } from "../lib/format";
 import { CabIcon } from "./icons";
 
-type DriverPhase = "idle" | "waiting" | "request" | "accepted" | "expired" | "declined";
+type DriverPhase =
+  | "idle"
+  | "waiting"
+  | "request"
+  | "accepted"
+  | "enroute"
+  | "trip"
+  | "done"
+  | "expired"
+  | "declined";
 
 type Props = {
+  driverName: string;
   online: boolean;
   connected: boolean;
   phase: DriverPhase;
@@ -16,9 +26,13 @@ type Props = {
   onToggleOnline: (next: boolean) => void;
   onAccept: () => void;
   onDecline: () => void;
+  onEnRoute: () => void;
+  onStart: () => void;
+  onComplete: () => void;
 };
 
 export function DriverPanel({
+  driverName,
   online,
   connected,
   phase,
@@ -30,6 +44,9 @@ export function DriverPanel({
   onToggleOnline,
   onAccept,
   onDecline,
+  onEnRoute,
+  onStart,
+  onComplete,
 }: Props) {
   const offerPct =
     offer && secondsLeft != null ? Math.max(0, Math.min(100, (secondsLeft / 15) * 100)) : 0;
@@ -42,7 +59,7 @@ export function DriverPanel({
           <div>
             <div className="bc-title">Driver console</div>
             <div className="bc-meta">
-              Dara P. · 2A-1234
+              {driverName}
               {connected ? " · WS live" : " · WS…"}
             </div>
           </div>
@@ -52,45 +69,20 @@ export function DriverPanel({
               type="checkbox"
               className="bc-switch"
               checked={online}
-              disabled={busy}
+              disabled={busy || phase === "accepted" || phase === "enroute" || phase === "trip"}
               onChange={(e) => onToggleOnline(e.target.checked)}
             />
           </label>
         </div>
 
-        {!online && (
+        {!online && phase !== "accepted" && phase !== "enroute" && phase !== "trip" && phase !== "done" && (
           <div className="bc-center bc-off">
             <CabIcon size={28} />
             <div>Go online to receive ride requests</div>
           </div>
         )}
 
-        {online && phase === "accepted" && (
-          <div className="bc-center">
-            <div className="bc-product-name">Trip accepted</div>
-            <div className="bc-meta">
-              Navigate to pickup
-              {offer
-                ? ` · ${shortPlace(offer.pickupLat, offer.pickupLng)} · ${formatDistanceKm(offer.distanceKm)}`
-                : ""}
-            </div>
-            {ride && (
-              <div className="bc-meta" style={{ marginTop: 8 }}>
-                Ride #{ride.id} · {ride.status}
-              </div>
-            )}
-          </div>
-        )}
-
-        {online && phase === "declined" && (
-          <div className="bc-meta bc-center">Declined — waiting for next request</div>
-        )}
-
-        {online && phase === "expired" && (
-          <div className="bc-meta bc-center">Request expired — reassigned to next driver</div>
-        )}
-
-        {online && phase === "request" && offer && (
+        {phase === "request" && offer && (
           <div className="bc-request">
             <div className="bc-request-top">
               <span className="bc-product-name">New request</span>
@@ -113,40 +105,66 @@ export function DriverPanel({
               <i className="is-warn" style={{ width: `${offerPct}%` }} />
             </div>
             <div className="bc-actions">
-              <button
-                type="button"
-                className="bc-btn bc-btn-pri"
-                disabled={busy}
-                onClick={onAccept}
-              >
+              <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onAccept}>
                 Accept
               </button>
-              <button
-                type="button"
-                className="bc-btn bc-btn-ghost"
-                disabled={busy}
-                onClick={onDecline}
-              >
+              <button type="button" className="bc-btn bc-btn-ghost" disabled={busy} onClick={onDecline}>
                 Decline
               </button>
             </div>
           </div>
         )}
 
-        {online && (phase === "idle" || phase === "waiting") && (
-          <div className="bc-meta bc-center">
-            Waiting for requests…
-            <br />
-            <span style={{ color: "var(--bc-q)" }}>
-              Ping GEO · listen /topic/drivers/…
-            </span>
+        {phase === "accepted" && (
+          <div className="bc-fade">
+            <div className="bc-product-name">Trip accepted</div>
+            <div className="bc-meta bc-mb16">
+              Ride #{ride?.id} · head to pickup
+              {offer ? ` · ${formatDistanceKm(offer.distanceKm)}` : ""}
+            </div>
+            <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onEnRoute}>
+              I&apos;m on the way
+            </button>
           </div>
         )}
 
-        {ride?.fare && phase === "accepted" && (
-          <div className="bc-meta bc-center" style={{ marginTop: 12 }}>
-            Last fare {formatKhr(ride.fare.totalCents)}
+        {phase === "enroute" && (
+          <div className="bc-fade">
+            <div className="bc-title">En route to rider</div>
+            <div className="bc-meta bc-mb16">Ride #{ride?.id}</div>
+            <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onStart}>
+              Arrived · start trip
+            </button>
           </div>
+        )}
+
+        {phase === "trip" && (
+          <div className="bc-fade">
+            <div className="bc-title">Trip in progress</div>
+            <div className="bc-meta bc-mb16">Ride #{ride?.id}</div>
+            <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onComplete}>
+              Complete trip
+            </button>
+          </div>
+        )}
+
+        {phase === "done" && (
+          <div className="bc-fade bc-center">
+            <div className="bc-product-name">Trip completed</div>
+            {ride?.fare && (
+              <div className="bc-meta">Fare {formatKhr(ride.fare.totalCents)}</div>
+            )}
+          </div>
+        )}
+
+        {online && phase === "declined" && (
+          <div className="bc-meta bc-center">Declined — waiting for next request</div>
+        )}
+        {online && phase === "expired" && (
+          <div className="bc-meta bc-center">Request expired — reassigned</div>
+        )}
+        {online && (phase === "idle" || phase === "waiting") && (
+          <div className="bc-meta bc-center">Waiting for requests…</div>
         )}
       </div>
     </div>
