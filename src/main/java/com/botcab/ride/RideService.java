@@ -50,13 +50,13 @@ public class RideService {
         this.tx = new TransactionTemplate(transactionManager);
     }
 
-    /** Persist {@code REQUESTED}, then start the STOMP offer loop. */
-    public RideResponse book(CreateRideRequest request) {
-        riders.require(request.riderId());
+    /** Persist {@code REQUESTED}, then start the STOMP offer loop. Rider id from JWT. */
+    public RideResponse book(long riderId, CreateRideRequest request) {
+        riders.require(riderId);
         Ride ride;
         try {
             ride = tx.execute(status -> rides.save(new Ride(
-                    request.riderId(),
+                    riderId,
                     request.pickupLat(),
                     request.pickupLng(),
                     request.dropoffLat(),

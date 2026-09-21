@@ -81,8 +81,7 @@ class RideServiceTest {
                 "o1", 42L, 2L, 11.55, 104.92, 0.3, Instant.now(), OfferStatus.PENDING, "offer");
         when(offers.requestForRide(any(Ride.class))).thenReturn(offer);
 
-        RideResponse response = service.book(new CreateRideRequest(
-                1L,
+        RideResponse response = service.book(1L, new CreateRideRequest(
                 BigDecimal.valueOf(11.55),
                 BigDecimal.valueOf(104.92),
                 BigDecimal.valueOf(11.56),
