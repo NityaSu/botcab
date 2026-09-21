@@ -1,26 +1,26 @@
 # BotCab
 
-Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; `/web` is a tiny driver-sim for the APIs just built.
+Ride-booking platform (Uber / Bolt shape). One Spring Boot **modular monolith**; `/web` is a Publix-style console split into Rider and Driver apps.
 
-A rider requests pickup and dropoff. The system matches a nearby driver, offers the trip with a short accept window, then tracks **requested → matched → driver en route → in progress → completed** (or cancelled). Fares come later; payments stay mocked.
+A rider requests pickup and dropoff. The system matches a nearby driver, offers the trip with a short accept window, then tracks **requested → matched → driver en route → in progress → completed** (or cancelled). Fares in KHR; payments stay mocked.
 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 7 done: Docker Compose + Render/Railway deploy configs |
+| **Now** | Phase 10 done: driver JWT + `/rider` / `/driver` apps |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
 
 | Layer | Choice |
 |---|---|
-| Backend | Java 21, Spring Boot 3.4 (Web, Data JPA, Validation, WebSocket, Actuator) |
+| Backend | Java 21, Spring Boot 3.4 (Web, Data JPA, Validation, WebSocket, Actuator, Security) |
 | DB | PostgreSQL 16, Flyway |
 | Location | Redis 7 GEO + Redisson locks |
 | Realtime | STOMP over `/ws` (in-memory broker) |
 | Load | k6 scripts in `/load` |
-| Deploy | Docker Compose locally; Render Blueprint / Railway
-| Frontend | React 19 + Vite + TypeScript in `/web` (driver-sim) |
+| Deploy | Docker Compose locally; Render Blueprint / Railway |
+| Frontend | React 19 + Vite + TypeScript in `/web` |
 
 ## Packages
 
@@ -45,7 +45,13 @@ In another terminal:
 cd web && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. Demo drivers are ids **1, 2, 3**; demo rider is often id **2** (check DB if book fails).
+Open `http://localhost:5173`:
+
+- `/` — pick Rider or Driver
+- `/rider` — demo `+855000000101` / `demo`
+- `/driver` — demo `+855000000011` / `demo`
+
+Tip: open Rider and Driver in two tabs to run a full trip.
 
 ## Run (full stack in Docker — Phase 7)
 
@@ -59,8 +65,7 @@ Then:
 curl -s http://localhost:8080/actuator/health
 ```
 
-Postgres / Redis / the Spring app all run as Compose services. Config is env-driven (`SPRING_DATASOURCE_*`, `SPRING_DATA_REDIS_*`). See `.env.example`.
-
+Postgres / Redis / the Spring app all run as Compose services. Config is env-driven (`SPRING_DATASOURCE_*`, `SPRING_DATA_REDIS_*`, `BOTCAB_JWT_SECRET`). See `.env.example`.
 
 ### Observability (Phase 6)
 
@@ -68,7 +73,7 @@ Postgres / Redis / the Spring app all run as Compose services. Config is env-dri
 curl -s http://localhost:8080/actuator/health
 curl -s http://localhost:8080/actuator/prometheus | head
 k6 run load/smoke.js
-k6 run -e RIDER_ID=2 load/booking.js
+k6 run load/booking.js
 ```
 
 See `load/README.md`.
