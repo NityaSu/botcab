@@ -13,6 +13,7 @@ export type RiderUiState =
 
 type Props = {
   ui: RiderUiState;
+  riderName: string;
   place: Place | null;
   ride: RideResponse | null;
   busy: boolean;
@@ -31,6 +32,7 @@ type Props = {
 
 export function RiderPanel({
   ui,
+  riderName,
   place,
   ride,
   busy,
@@ -57,7 +59,7 @@ export function RiderPanel({
       {ui === "IDLE" && (
         <div className="bc-fade">
           <div className="bc-meta" style={{ marginBottom: 4 }}>
-            Good evening, Sreypov
+            Good evening, {riderName}
           </div>
           <div className="bc-hero">Where to?</div>
           <div className="bc-search">

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authApi } from "../api/auth";
+import { getToken, setToken } from "../api/client";
 import { driversApi, ridesApi } from "../api/rides";
 import {
   DEFAULT_DRIVER_ID,
-  DEFAULT_RIDER_ID,
   PLACES,
   type Mode,
   type OfferMessage,
@@ -32,8 +33,14 @@ function statusToUi(status: string | undefined): RiderUiState | null {
   }
 }
 
-function statusPill(mode: Mode, ui: RiderUiState, online: boolean): string {
+function statusPill(
+  mode: Mode,
+  ui: RiderUiState,
+  online: boolean,
+  riderName: string | null,
+): string {
   if (mode === "driver") return online ? "DRIVER · ONLINE" : "DRIVER";
+  if (!riderName) return "LOGIN";
   const map: Record<RiderUiState, string> = {
     IDLE: "IDLE",
     ESTIMATE: "REQUESTED",
@@ -47,8 +54,11 @@ function statusPill(mode: Mode, ui: RiderUiState, online: boolean): string {
 }
 
 export function useBotCabSession() {
-  const riderId = DEFAULT_RIDER_ID;
   const driverId = DEFAULT_DRIVER_ID;
+
+  const [riderId, setRiderId] = useState<number | null>(null);
+  const [riderName, setRiderName] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   const [mode, setMode] = useState<Mode>("rider");
   const [ui, setUi] = useState<RiderUiState>("IDLE");
@@ -105,6 +115,57 @@ export function useBotCabSession() {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!getToken()) {
+        setAuthReady(true);
+        return;
+      }
+      try {
+        const me = await authApi.me();
+        if (cancelled) return;
+        setRiderId(me.riderId);
+        setRiderName(me.fullName);
+      } catch {
+        if (!cancelled) {
+          setToken(null);
+          setRiderId(null);
+          setRiderName(null);
+        }
+      } finally {
+        if (!cancelled) setAuthReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyAuth = (token: string, id: number, name: string) => {
+    setToken(token);
+    setRiderId(id);
+    setRiderName(name);
+    setError(null);
+  };
+
+  const login = async (phone: string, password: string) => {
+    const res = await run(() => authApi.login({ phone, password }));
+    if (res) applyAuth(res.token, res.riderId, res.fullName);
+  };
+
+  const register = async (fullName: string, phone: string, password: string) => {
+    const res = await run(() => authApi.register({ fullName, phone, password }));
+    if (res) applyAuth(res.token, res.riderId, res.fullName);
+  };
+
+  const logout = () => {
+    authApi.logout();
+    setRiderId(null);
+    setRiderName(null);
+    resetRider();
+  };
+
   const onOffer = useCallback((msg: OfferMessage) => {
     setOffer(msg);
     if (msg.status === "PENDING") {
@@ -120,7 +181,6 @@ export function useBotCabSession() {
 
   const { connected } = useDriverOffers(driverId, online && mode === "driver", onOffer);
 
-  // Offer countdown
   useEffect(() => {
     if (!offer || offer.status !== "PENDING") {
       setSecondsLeft(null);
@@ -139,7 +199,6 @@ export function useBotCabSession() {
     return () => window.clearInterval(id);
   }, [offer]);
 
-  // Poll ride while REQUESTED / after book
   useEffect(() => {
     if (!ride || (ui !== "FINDING" && ride.status !== "REQUESTED")) {
       clearPoll();
@@ -172,7 +231,6 @@ export function useBotCabSession() {
     };
   }, [ride?.id, ride?.status, ui]);
 
-  // Map car animation when en route / trip
   useEffect(() => {
     if (ui === "ENROUTE" || ui === "TRIP") {
       setCarVisible(true);
@@ -196,10 +254,13 @@ export function useBotCabSession() {
     }
   }, [ui, startCar]);
 
-  useEffect(() => () => {
-    clearPoll();
-    stopCar();
-  }, []);
+  useEffect(
+    () => () => {
+      clearPoll();
+      stopCar();
+    },
+    [],
+  );
 
   const resetRider = () => {
     clearPoll();
@@ -216,9 +277,7 @@ export function useBotCabSession() {
   const setTab = (next: Mode) => {
     setMode(next);
     setError(null);
-    if (next === "rider") {
-      /* keep ride if mid-trip */
-    } else {
+    if (next !== "rider") {
       setDriverPhase(online ? "waiting" : "idle");
     }
   };
@@ -230,10 +289,9 @@ export function useBotCabSession() {
   };
 
   const requestRide = async () => {
-    if (!place) return;
+    if (!place || !riderId) return;
     const body = await run(() =>
       ridesApi.book({
-        riderId,
         pickupLat: place.pickupLat,
         pickupLng: place.pickupLng,
         dropoffLat: place.dropoffLat,
@@ -252,9 +310,7 @@ export function useBotCabSession() {
       resetRider();
       return;
     }
-    const body = await run(() =>
-      ridesApi.cancel(ride.id, { cancelledBy: "RIDER", actorId: riderId }),
-    );
+    const body = await run(() => ridesApi.cancel(ride.id));
     if (body) resetRider();
   };
 
@@ -291,7 +347,6 @@ export function useBotCabSession() {
     await run(async () => {
       if (next) {
         await driversApi.available(driverId);
-        // Ping near Home / BKK1 so GEO match finds this driver
         const home = PLACES[0];
         await driversApi.ping(driverId, home.pickupLat + 0.002, home.pickupLng + 0.002);
         setOnline(true);
@@ -345,6 +400,12 @@ export function useBotCabSession() {
         : "redis> GEOSEARCH drivers +500m → online";
 
   return {
+    authReady,
+    riderId,
+    riderName,
+    login,
+    register,
+    logout,
     mode,
     setTab,
     ui,
@@ -363,7 +424,7 @@ export function useBotCabSession() {
     progress,
     showDrop,
     redisHint,
-    statusPill: statusPill(mode, ui, online),
+    statusPill: statusPill(mode, ui, online, riderName),
     pickPlace,
     backIdle: resetRider,
     requestRide,

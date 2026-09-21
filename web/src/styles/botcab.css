@@ -238,6 +238,35 @@ body {
   font-weight: 700;
 }
 
+.bc-chip-btn {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.bc-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.bc-input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--bc-q) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bc-q) 10%, transparent);
+  color: var(--bc-pri);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bc-input:focus {
+  outline: 1px solid var(--bc-pos);
+}
+
 .bc-search {
   display: flex;
   align-items: center;

@@ -4,10 +4,12 @@ import { CabIcon } from "./icons";
 type Props = {
   mode: Mode;
   statusPill: string;
+  riderName: string | null;
   onModeChange: (mode: Mode) => void;
+  onLogout: () => void;
 };
 
-export function AppHeader({ mode, statusPill, onModeChange }: Props) {
+export function AppHeader({ mode, statusPill, riderName, onModeChange, onLogout }: Props) {
   return (
     <div className="bc-head">
       <div className="bc-brand">
@@ -16,6 +18,11 @@ export function AppHeader({ mode, statusPill, onModeChange }: Props) {
       </div>
       <div className="bc-spacer" />
       <div className="bc-chip bc-chip-muted">{statusPill}</div>
+      {riderName && mode === "rider" && (
+        <button type="button" className="bc-chip bc-chip-muted bc-chip-btn" onClick={onLogout}>
+          Log out
+        </button>
+      )}
       <div className="bc-tabs">
         <button
           type="button"
