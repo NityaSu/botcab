@@ -2,8 +2,8 @@ package com.botcab.driver;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,11 +23,21 @@ public class Driver {
     @Column(name = "phone", nullable = false)
     private String phone;
 
+    @Column(name = "password_hash", nullable = false, length = 100)
+    private String passwordHash;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private DriverStatus status;
 
     protected Driver() {
+    }
+
+    public Driver(String fullName, String phone, String passwordHash) {
+        this.fullName = fullName;
+        this.phone = phone;
+        this.passwordHash = passwordHash;
+        this.status = DriverStatus.OFFLINE;
     }
 
     public Long getId() {
@@ -36,6 +46,14 @@ public class Driver {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
     public DriverStatus getStatus() {
