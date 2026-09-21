@@ -33,15 +33,32 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/rides").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/rides").hasRole("RIDER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/cancel").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/accept").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/reject").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/en-route").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/start").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/complete").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/offers/*/accept").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/offers/*/reject").hasRole("DRIVER")
+                        .requestMatchers("/api/drivers/me/**").hasRole("DRIVER")
+                        .requestMatchers("/api/drivers/*/location", "/api/drivers/*/available", "/api/drivers/*/offline")
+                        .hasRole("DRIVER")
                         .anyRequest().permitAll())
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(401);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Login required\"}");
-                }))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(401);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Login required\"}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(403);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Forbidden\"}");
+                        }))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

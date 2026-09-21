@@ -1,16 +1,11 @@
 package com.botcab.matching;
 
-import jakarta.validation.Valid;
+import com.botcab.common.auth.AuthPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Offer accept/reject by offer id (driver-sim convenience). Prefer
- * {@code POST /api/rides/{id}/accept|reject} once a ride row exists.
- */
 @RestController
 @RequestMapping("/api/offers")
 public class OfferController {
@@ -22,14 +17,12 @@ public class OfferController {
     }
 
     @PostMapping("/{offerId}/accept")
-    public OfferMessage accept(
-            @PathVariable String offerId, @Valid @RequestBody OfferActionRequest body) {
-        return offers.accept(offerId, body.driverId());
+    public OfferMessage accept(@PathVariable("offerId") String offerId) {
+        return offers.accept(offerId, AuthPrincipal.requireDriverId());
     }
 
     @PostMapping("/{offerId}/reject")
-    public OfferMessage reject(
-            @PathVariable String offerId, @Valid @RequestBody OfferActionRequest body) {
-        return offers.reject(offerId, body.driverId());
+    public OfferMessage reject(@PathVariable("offerId") String offerId) {
+        return offers.reject(offerId, AuthPrincipal.requireDriverId());
     }
 }
