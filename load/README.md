@@ -8,8 +8,10 @@
 # Smoke (health + prometheus scrape):
 #   k6 run load/smoke.js
 #
-# Booking loop (book → cancel; keep VUs low — one active ride per rider):
+# Booking loop (rider JWT book → driver JWT accept → rider cancel):
 #   k6 run load/booking.js
+#
+# Demo phones: rider +855000000101 / demo · driver +855000000011 / demo
 #
 # Optional base URL:
 #   k6 run -e BASE_URL=http://localhost:8080 load/smoke.js
