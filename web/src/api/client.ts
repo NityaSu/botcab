@@ -1,32 +1,47 @@
-const TOKEN_KEY = "botcab.riderToken";
+export type TokenRole = "rider" | "driver";
 
-let authToken: string | null =
-  typeof localStorage !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+const RIDER_KEY = "botcab.riderToken";
+const DRIVER_KEY = "botcab.driverToken";
 
-export function getToken(): string | null {
-  return authToken;
+let activeRole: TokenRole = "rider";
+let riderToken: string | null =
+  typeof localStorage !== "undefined" ? localStorage.getItem(RIDER_KEY) : null;
+let driverToken: string | null =
+  typeof localStorage !== "undefined" ? localStorage.getItem(DRIVER_KEY) : null;
+
+export function setActiveRole(role: TokenRole) {
+  activeRole = role;
 }
 
-export function setToken(token: string | null) {
-  authToken = token;
-  if (typeof localStorage === "undefined") return;
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+export function getToken(role: TokenRole = activeRole): string | null {
+  return role === "rider" ? riderToken : driverToken;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export function setToken(role: TokenRole, token: string | null) {
+  if (role === "rider") {
+    riderToken = token;
+    if (typeof localStorage !== "undefined") {
+      if (token) localStorage.setItem(RIDER_KEY, token);
+      else localStorage.removeItem(RIDER_KEY);
+    }
+  } else {
+    driverToken = token;
+    if (typeof localStorage !== "undefined") {
+      if (token) localStorage.setItem(DRIVER_KEY, token);
+      else localStorage.removeItem(DRIVER_KEY);
+    }
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit, role: TokenRole = activeRole): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(init?.headers as Record<string, string> | undefined),
   };
-  if (authToken) {
-    headers.Authorization = `Bearer ${authToken}`;
-  }
+  const token = getToken(role);
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(path, {
-    ...init,
-    headers,
-  });
+  const res = await fetch(path, { ...init, headers });
   const text = await res.text();
   if (!res.ok) {
     let message = text || res.statusText;
@@ -34,7 +49,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       const json = JSON.parse(text) as { error?: string };
       if (json.error) message = json.error;
     } catch {
-      /* keep raw */
+      /* keep */
     }
     throw new Error(message);
   }
@@ -42,10 +57,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, {
-      method: "POST",
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, body?: unknown, role?: TokenRole) =>
+    request<T>(
+      path,
+      {
+        method: "POST",
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      role,
+    ),
+  get: <T>(path: string, role?: TokenRole) => request<T>(path, undefined, role),
 };

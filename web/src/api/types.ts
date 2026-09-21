@@ -1,5 +1,3 @@
-export type Mode = "rider" | "driver";
-
 export type RideStatus =
   | "REQUESTED"
   | "MATCHED"
@@ -52,7 +50,6 @@ export type Place = {
   distanceLabel: string;
 };
 
-/** Phnom Penh sketch destinations (matches Publix BotCab demo). */
 export const PLACES: Place[] = [
   {
     name: "Home",
@@ -83,9 +80,8 @@ export const PLACES: Place[] = [
   },
 ];
 
-/** Seeded by Flyway V2 (`Demo Driver Sophea`). */
-export const DEFAULT_DRIVER_ID = 1;
-
-/** Demo rider (V4 + V6): phone +855000000101 / password demo */
+/** Demo rider (V4+V7): +855000000101 / demo */
 export const DEMO_RIDER_PHONE = "+855000000101";
-export const DEMO_RIDER_PASSWORD = "demo";
+/** Demo driver Sophea (V3+V8): +855000000011 / demo */
+export const DEMO_DRIVER_PHONE = "+855000000011";
+export const DEMO_PASSWORD = "demo";
