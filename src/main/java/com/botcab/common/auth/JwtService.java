@@ -1,6 +1,5 @@
 package com.botcab.common.auth;
 
-import com.botcab.rider.Rider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -26,21 +25,21 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(bytes);
     }
 
-    public String sign(Rider rider) {
+    public String sign(long id, String phone, String fullName, Role role) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(props.ttlDays() * 24 * 3600);
         return Jwts.builder()
-                .subject(String.valueOf(rider.getId()))
-                .claim("phone", rider.getPhone())
-                .claim("name", rider.getFullName())
-                .claim("role", "RIDER")
+                .subject(String.valueOf(id))
+                .claim("phone", phone)
+                .claim("name", fullName)
+                .claim("role", role.name())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .signWith(key)
                 .compact();
     }
 
-    public RiderPrincipal parse(String token) {
+    public AuthPrincipal parse(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
@@ -49,6 +48,7 @@ public class JwtService {
         long id = Long.parseLong(claims.getSubject());
         String phone = claims.get("phone", String.class);
         String name = claims.get("name", String.class);
-        return new RiderPrincipal(id, phone, name);
+        Role role = Role.valueOf(claims.get("role", String.class));
+        return new AuthPrincipal(id, phone, name, role);
     }
 }
