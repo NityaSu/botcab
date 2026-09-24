@@ -10,31 +10,45 @@ import com.botcab.ride.RideNotFoundException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class RestExceptionHandler {
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> validation(MethodArgumentNotValidException ex) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+            fields.putIfAbsent(fe.getField(), fe.getDefaultMessage() != null
+                    ? fe.getDefaultMessage()
+                    : "Invalid value");
+        }
+        return ResponseEntity.badRequest().body(ApiError.validation(fields));
+    }
+
     @ExceptionHandler(NoDriverAvailableException.class)
-    public ResponseEntity<Map<String, String>> noDriver(NoDriverAvailableException ex) {
+    public ResponseEntity<ApiError> noDriver(NoDriverAvailableException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage()));
+                .body(ApiError.message("NO_DRIVER", ex.getMessage()));
     }
 
     @ExceptionHandler(OfferNotFoundException.class)
-    public ResponseEntity<Map<String, String>> noOffer(OfferNotFoundException ex) {
+    public ResponseEntity<ApiError> noOffer(OfferNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage()));
+                .body(ApiError.message("OFFER_NOT_FOUND", ex.getMessage()));
     }
 
     @ExceptionHandler({RideNotFoundException.class, FareNotFoundException.class})
-    public ResponseEntity<Map<String, String>> notFound(RuntimeException ex) {
+    public ResponseEntity<ApiError> notFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage()));
+                .body(ApiError.message("NOT_FOUND", ex.getMessage()));
     }
 
     @ExceptionHandler({
@@ -43,14 +57,21 @@ public class RestExceptionHandler {
             FareAlreadyExistsException.class,
             OptimisticLockingFailureException.class
     })
-    public ResponseEntity<Map<String, String>> conflict(RuntimeException ex) {
+    public ResponseEntity<ApiError> conflict(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", ex.getMessage()));
+                .body(ApiError.message("CONFLICT", ex.getMessage()));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> status(ResponseStatusException ex) {
+    public ResponseEntity<ApiError> status(ResponseStatusException ex) {
+        String code = switch (ex.getStatusCode().value()) {
+            case 401 -> "UNAUTHORIZED";
+            case 403 -> "FORBIDDEN";
+            case 409 -> "CONFLICT";
+            case 429 -> "RATE_LIMITED";
+            default -> "HTTP_" + ex.getStatusCode().value();
+        };
         return ResponseEntity.status(ex.getStatusCode())
-                .body(Map.of("error", String.valueOf(ex.getReason())));
+                .body(ApiError.message(code, String.valueOf(ex.getReason())));
     }
 }
