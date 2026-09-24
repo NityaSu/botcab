@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { DEMO_PASSWORD } from "../api/types";
 
 type Props = {
   title: string;
@@ -6,6 +7,7 @@ type Props = {
   defaultPhone?: string;
   busy: boolean;
   error: string | null;
+  fieldErrors?: Record<string, string>;
   onLogin: (phone: string, password: string) => void;
   onRegister: (fullName: string, phone: string, password: string) => void;
 };
@@ -16,13 +18,14 @@ export function AuthPanel({
   defaultPhone = "",
   busy,
   error,
+  fieldErrors = {},
   onLogin,
   onRegister,
 }: Props) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState(defaultPhone);
-  const [password, setPassword] = useState("demo");
+  const [password, setPassword] = useState(DEMO_PASSWORD);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -46,6 +49,9 @@ export function AuthPanel({
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
+              {fieldErrors.fullName && (
+                <span className="bc-field-error">{fieldErrors.fullName}</span>
+              )}
             </label>
           )}
           <label className="bc-field">
@@ -56,6 +62,7 @@ export function AuthPanel({
               onChange={(e) => setPhone(e.target.value)}
               required
             />
+            {fieldErrors.phone && <span className="bc-field-error">{fieldErrors.phone}</span>}
           </label>
           <label className="bc-field">
             <span className="bc-meta">Password</span>
@@ -65,8 +72,14 @@ export function AuthPanel({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={4}
+              minLength={mode === "register" ? 8 : 1}
             />
+            {fieldErrors.password && (
+              <span className="bc-field-error">{fieldErrors.password}</span>
+            )}
+            {mode === "register" && !fieldErrors.password && (
+              <span className="bc-meta">At least 8 characters, with a letter and a digit</span>
+            )}
           </label>
           <button type="submit" className="bc-btn bc-btn-pri" disabled={busy}>
             {busy ? "…" : mode === "login" ? "Log in" : "Register"}

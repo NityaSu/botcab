@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { persistAuth, riderAuthApi } from "../api/auth";
-import { getToken, setActiveRole, setToken } from "../api/client";
+import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
 import { ridesApi } from "../api/rides";
 import { DEMO_PASSWORD, DEMO_RIDER_PHONE, PLACES, type Place, type RideResponse } from "../api/types";
 import type { RiderUiState } from "../components/RiderPanel";
@@ -47,6 +47,7 @@ export function useRiderSession() {
   const [ride, setRide] = useState<RideResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [carT, setCarT] = useState(0.12);
   const [carVisible, setCarVisible] = useState(false);
   const [progress, setProgress] = useState(15);
@@ -76,12 +77,19 @@ export function useRiderSession() {
   }, []);
 
   const fail = (e: unknown) => {
+    if (e instanceof ApiRequestError) {
+      setFieldErrors(e.fields);
+      setError(Object.keys(e.fields).length > 0 ? null : e.message);
+      return;
+    }
     setError(e instanceof Error ? e.message : String(e));
+    setFieldErrors({});
   };
 
   const run = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
     setBusy(true);
     setError(null);
+    setFieldErrors({});
     try {
       return await fn();
     } catch (e) {
@@ -128,6 +136,7 @@ export function useRiderSession() {
     setRiderId(id);
     setRiderName(name);
     setError(null);
+    setFieldErrors({});
   };
 
   const login = async (phone: string, password: string) => {
@@ -301,6 +310,7 @@ export function useRiderSession() {
     ride,
     busy,
     error,
+    fieldErrors,
     carT,
     carVisible,
     progress,

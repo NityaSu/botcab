@@ -35,6 +35,7 @@ export function DriverApp() {
               defaultPhone={DEMO_DRIVER_PHONE}
               busy={s.busy}
               error={s.error}
+              fieldErrors={s.fieldErrors}
               onLogin={s.login}
               onRegister={s.register}
             />

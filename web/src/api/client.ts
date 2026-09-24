@@ -33,6 +33,31 @@ export function setToken(role: TokenRole, token: string | null) {
   }
 }
 
+export type ApiErrorBody = {
+  error?: string;
+  code?: string;
+  fields?: Record<string, string>;
+};
+
+export class ApiRequestError extends Error {
+  readonly code?: string;
+  readonly fields: Record<string, string>;
+
+  constructor(message: string, code?: string, fields?: Record<string, string>) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.code = code;
+    this.fields = fields ?? {};
+  }
+}
+
+function formatError(json: ApiErrorBody, fallback: string): ApiRequestError {
+  const fields = json.fields ?? {};
+  const fieldMsg = Object.values(fields).filter(Boolean).join(" · ");
+  const message = fieldMsg || json.error || fallback;
+  return new ApiRequestError(message, json.code, fields);
+}
+
 async function request<T>(path: string, init?: RequestInit, role: TokenRole = activeRole): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -44,14 +69,13 @@ async function request<T>(path: string, init?: RequestInit, role: TokenRole = ac
   const res = await fetch(path, { ...init, headers });
   const text = await res.text();
   if (!res.ok) {
-    let message = text || res.statusText;
     try {
-      const json = JSON.parse(text) as { error?: string };
-      if (json.error) message = json.error;
-    } catch {
-      /* keep */
+      const json = JSON.parse(text) as ApiErrorBody;
+      throw formatError(json, text || res.statusText);
+    } catch (e) {
+      if (e instanceof ApiRequestError) throw e;
+      throw new ApiRequestError(text || res.statusText);
     }
-    throw new Error(message);
   }
   return text ? (JSON.parse(text) as T) : (null as T);
 }

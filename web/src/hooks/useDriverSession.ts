@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { driverAuthApi, persistAuth } from "../api/auth";
-import { getToken, setActiveRole, setToken } from "../api/client";
+import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
 import { driversApi, ridesApi } from "../api/rides";
 import {
   DEMO_DRIVER_PHONE,
@@ -39,15 +39,23 @@ export function useDriverSession() {
   const [ride, setRide] = useState<RideResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   const fail = (e: unknown) => {
+    if (e instanceof ApiRequestError) {
+      setFieldErrors(e.fields);
+      setError(Object.keys(e.fields).length > 0 ? null : e.message);
+      return;
+    }
     setError(e instanceof Error ? e.message : String(e));
+    setFieldErrors({});
   };
 
   const run = async <T,>(fn: () => Promise<T>): Promise<T | null> => {
     setBusy(true);
     setError(null);
+    setFieldErrors({});
     try {
       return await fn();
     } catch (e) {
@@ -98,6 +106,7 @@ export function useDriverSession() {
     setDriverId(id);
     setDriverName(name);
     setError(null);
+    setFieldErrors({});
   };
 
   const login = async (phone: string, password: string) => {
@@ -260,6 +269,7 @@ export function useDriverSession() {
     ride,
     busy,
     error,
+    fieldErrors,
     redisHint,
     statusPill: online ? "DRIVER · ONLINE" : "DRIVER",
     demoHint: `Demo: ${DEMO_DRIVER_PHONE} / ${DEMO_PASSWORD}`,

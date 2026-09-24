@@ -80,8 +80,8 @@ export const PLACES: Place[] = [
   },
 ];
 
-/** Demo rider (V4+V7): +855000000101 / demo */
+/** Demo rider (V4+V9): +855000000101 / Demo1234 */
 export const DEMO_RIDER_PHONE = "+855000000101";
-/** Demo driver Sophea (V3+V8): +855000000011 / demo */
+/** Demo driver Sophea (V3+V9): +855000000011 / Demo1234 */
 export const DEMO_DRIVER_PHONE = "+855000000011";
-export const DEMO_PASSWORD = "demo";
+export const DEMO_PASSWORD = "Demo1234";
