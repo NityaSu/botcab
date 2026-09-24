@@ -2,6 +2,7 @@ package com.botcab.rider;
 
 import com.botcab.common.auth.JwtProperties;
 import com.botcab.common.auth.JwtService;
+import com.botcab.common.auth.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,17 +28,17 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         JwtService jwt = new JwtService(new JwtProperties("botcab-dev-jwt-secret-change-me-32b", 7));
-        auth = new AuthService(riders, new BCryptPasswordEncoder(), jwt);
+        auth = new AuthService(riders, new BCryptPasswordEncoder(), jwt, new LoginAttemptService());
     }
 
     @Test
     void loginReturnsToken() {
-        String hash = new BCryptPasswordEncoder().encode("demo");
+        String hash = new BCryptPasswordEncoder().encode("Demo1234");
         Rider rider = new Rider("Maya", "+855000000101", hash);
         setId(rider, 1L);
         when(riders.findByPhone("+855000000101")).thenReturn(Optional.of(rider));
 
-        AuthResponse res = auth.login(new LoginRequest("+855000000101", "demo"));
+        AuthResponse res = auth.login(new LoginRequest("+855000000101", "Demo1234"));
         assertEquals(1L, res.userId());
         assertEquals("Maya", res.fullName());
         assertEquals("+855000000101", res.phone());
@@ -47,7 +48,7 @@ class AuthServiceTest {
 
     @Test
     void loginRejectsBadPassword() {
-        String hash = new BCryptPasswordEncoder().encode("demo");
+        String hash = new BCryptPasswordEncoder().encode("Demo1234");
         Rider rider = new Rider("Maya", "+855000000101", hash);
         when(riders.findByPhone("+855000000101")).thenReturn(Optional.of(rider));
 
@@ -57,9 +58,21 @@ class AuthServiceTest {
 
     @Test
     void registerRejectsDuplicatePhone() {
-        when(riders.existsByPhone("+8551")).thenReturn(true);
+        when(riders.existsByPhone("+855100000001")).thenReturn(true);
         assertThrows(ResponseStatusException.class, () ->
-                auth.register(new RegisterRequest("A", "+8551", "demo")));
+                auth.register(new RegisterRequest("A", "+855100000001", "Demo1234")));
+    }
+
+    @Test
+    void loginLocksAfterRepeatedFailures() {
+        when(riders.findByPhone("+855000000101")).thenReturn(Optional.empty());
+        for (int i = 0; i < LoginAttemptService.MAX_FAILURES; i++) {
+            assertThrows(ResponseStatusException.class, () ->
+                    auth.login(new LoginRequest("+855000000101", "wrong")));
+        }
+        ResponseStatusException locked = assertThrows(ResponseStatusException.class, () ->
+                auth.login(new LoginRequest("+855000000101", "Demo1234")));
+        assertEquals(429, locked.getStatusCode().value());
     }
 
     private static void setId(Rider rider, long id) {

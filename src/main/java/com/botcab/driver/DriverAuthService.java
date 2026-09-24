@@ -2,6 +2,7 @@ package com.botcab.driver;
 
 import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.JwtService;
+import com.botcab.common.auth.LoginAttemptService;
 import com.botcab.common.auth.Role;
 import com.botcab.rider.AuthResponse;
 import com.botcab.rider.LoginRequest;
@@ -17,11 +18,17 @@ public class DriverAuthService {
     private final DriverRepository drivers;
     private final PasswordEncoder passwords;
     private final JwtService jwt;
+    private final LoginAttemptService loginAttempts;
 
-    public DriverAuthService(DriverRepository drivers, PasswordEncoder passwords, JwtService jwt) {
+    public DriverAuthService(
+            DriverRepository drivers,
+            PasswordEncoder passwords,
+            JwtService jwt,
+            LoginAttemptService loginAttempts) {
         this.drivers = drivers;
         this.passwords = passwords;
         this.jwt = jwt;
+        this.loginAttempts = loginAttempts;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -37,12 +44,15 @@ public class DriverAuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        Driver driver = drivers.findByPhone(request.phone().trim())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Wrong phone or password"));
-        if (!passwords.matches(request.password(), driver.getPasswordHash())) {
+        String phone = request.phone().trim();
+        String key = "driver:" + phone;
+        loginAttempts.checkAllowed(key);
+        Driver driver = drivers.findByPhone(phone).orElse(null);
+        if (driver == null || !passwords.matches(request.password(), driver.getPasswordHash())) {
+            loginAttempts.recordFailure(key);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong phone or password");
         }
+        loginAttempts.recordSuccess(key);
         return toAuth(driver);
     }
 

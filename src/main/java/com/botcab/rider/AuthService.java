@@ -2,6 +2,7 @@ package com.botcab.rider;
 
 import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.JwtService;
+import com.botcab.common.auth.LoginAttemptService;
 import com.botcab.common.auth.Role;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,11 +15,17 @@ public class AuthService {
     private final RiderRepository riders;
     private final PasswordEncoder passwords;
     private final JwtService jwt;
+    private final LoginAttemptService loginAttempts;
 
-    public AuthService(RiderRepository riders, PasswordEncoder passwords, JwtService jwt) {
+    public AuthService(
+            RiderRepository riders,
+            PasswordEncoder passwords,
+            JwtService jwt,
+            LoginAttemptService loginAttempts) {
         this.riders = riders;
         this.passwords = passwords;
         this.jwt = jwt;
+        this.loginAttempts = loginAttempts;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -34,12 +41,15 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        Rider rider = riders.findByPhone(request.phone().trim())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Wrong phone or password"));
-        if (!passwords.matches(request.password(), rider.getPasswordHash())) {
+        String phone = request.phone().trim();
+        String key = "rider:" + phone;
+        loginAttempts.checkAllowed(key);
+        Rider rider = riders.findByPhone(phone).orElse(null);
+        if (rider == null || !passwords.matches(request.password(), rider.getPasswordHash())) {
+            loginAttempts.recordFailure(key);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong phone or password");
         }
+        loginAttempts.recordSuccess(key);
         return toAuth(rider);
     }
 
