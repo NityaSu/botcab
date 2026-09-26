@@ -11,7 +11,7 @@
 # Booking loop (rider JWT book → driver JWT accept → rider cancel):
 #   k6 run load/booking.js
 #
-# Demo phones: rider +855000000101 / demo · driver +855000000011 / demo
+# Demo phones: rider +855000000101 / Demo1234 · driver +855000000011 / Demo1234
 #
 # Optional base URL:
 #   k6 run -e BASE_URL=http://localhost:8080 load/smoke.js

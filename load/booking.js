@@ -3,13 +3,13 @@ import { check, sleep } from "k6";
 
 /**
  * Login as demo rider + driver, book, accept, then cancel (JWT roles).
- * Prep: demo rider +855000000101 / demo; demo driver +855000000011 / demo.
+ * Prep: demo rider +855000000101 / Demo1234; demo driver +855000000011 / Demo1234.
  */
 const BASE = __ENV.BASE_URL || "http://localhost:8080";
 const RIDER_PHONE = __ENV.RIDER_PHONE || "+855000000101";
-const RIDER_PASSWORD = __ENV.RIDER_PASSWORD || "demo";
+const RIDER_PASSWORD = __ENV.RIDER_PASSWORD || "Demo1234";
 const DRIVER_PHONE = __ENV.DRIVER_PHONE || "+855000000011";
-const DRIVER_PASSWORD = __ENV.DRIVER_PASSWORD || "demo";
+const DRIVER_PASSWORD = __ENV.DRIVER_PASSWORD || "Demo1234";
 const PNH = { lat: 11.5564, lng: 104.9282 };
 
 export const options = {

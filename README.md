@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 10 done: driver JWT + `/rider` / `/driver` apps |
+| **Now** | Phase 11 done: auth hardening (strong passwords, field errors) |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -17,7 +17,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | Backend | Java 21, Spring Boot 3.4 (Web, Data JPA, Validation, WebSocket, Actuator, Security) |
 | DB | PostgreSQL 16, Flyway |
 | Location | Redis 7 GEO + Redisson locks |
-| Realtime | STOMP over `/ws` (in-memory broker) |
+| Realtime | STOMP over `/ws` (JWT CONNECT; driver `/user/queue/offers`) |
 | Load | k6 scripts in `/load` |
 | Deploy | Docker Compose locally; Render Blueprint / Railway |
 | Frontend | React 19 + Vite + TypeScript in `/web` |
@@ -48,8 +48,8 @@ cd web && npm install && npm run dev
 Open `http://localhost:5173`:
 
 - `/` — pick Rider or Driver
-- `/rider` — demo `+855000000101` / `demo`
-- `/driver` — demo `+855000000011` / `demo`
+- `/rider` — demo `+855000000101` / `Demo1234`
+- `/driver` — demo `+855000000011` / `Demo1234`
 
 Tip: open Rider and Driver in two tabs to run a full trip.
 
