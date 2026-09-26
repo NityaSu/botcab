@@ -7,6 +7,7 @@ import { useRiderSession } from "../hooks/useRiderSession";
 
 export function RiderApp() {
   const s = useRiderSession();
+  const mapInteractive = Boolean(s.riderName) && (s.ui === "IDLE" || s.ui === "ESTIMATE");
 
   return (
     <div className="app-shell">
@@ -23,6 +24,10 @@ export function RiderApp() {
             carVisible={s.carVisible}
             carT={s.carT}
             redisHint={s.redisHint}
+            pickMode={mapInteractive ? s.pickMode : null}
+            pickup={s.pickup}
+            dropoff={s.dropoff}
+            onMapPick={mapInteractive ? s.onMapPick : undefined}
           />
           {!s.authReady ? (
             <div className="bc-panel">
@@ -43,13 +48,19 @@ export function RiderApp() {
             <RiderPanel
               ui={s.ui}
               riderName={s.riderName}
-              place={s.place}
+              pickup={s.pickup}
+              dropoff={s.dropoff}
+              pickMode={s.pickMode}
               ride={s.ride}
               busy={s.busy}
               error={s.error}
               progress={s.progress}
-              places={s.places}
-              onPickPlace={s.pickPlace}
+              savedTrips={s.savedTrips}
+              searchResults={s.searchResults}
+              onSearch={s.onSearch}
+              onPickDropoff={s.pickDropoff}
+              onPickSavedTrip={s.pickSavedTrip}
+              onSetPickMode={s.setPickMode}
               onBackIdle={s.backIdle}
               onRequest={s.requestRide}
               onCancel={s.cancelRide}

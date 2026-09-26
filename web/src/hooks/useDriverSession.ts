@@ -3,9 +3,9 @@ import { driverAuthApi, persistAuth } from "../api/auth";
 import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
 import { driversApi, ridesApi } from "../api/rides";
 import {
+  DEFAULT_PICKUP,
   DEMO_DRIVER_PHONE,
   DEMO_PASSWORD,
-  PLACES,
   type OfferMessage,
   type RideResponse,
 } from "../api/types";
@@ -177,8 +177,8 @@ export function useDriverSession() {
     await run(async () => {
       if (next) {
         await driversApi.available();
-        const home = PLACES[0];
-        await driversApi.ping(home.pickupLat + 0.002, home.pickupLng + 0.002);
+        const home = DEFAULT_PICKUP;
+        await driversApi.ping(home.lat + 0.002, home.lng + 0.002);
         setOnline(true);
         setPhase("waiting");
       } else {

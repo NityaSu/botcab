@@ -1,8 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { persistAuth, riderAuthApi } from "../api/auth";
 import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
 import { ridesApi } from "../api/rides";
-import { DEMO_PASSWORD, DEMO_RIDER_PHONE, PLACES, type Place, type RideResponse } from "../api/types";
+import {
+  DEFAULT_PICKUP,
+  DEMO_PASSWORD,
+  DEMO_RIDER_PHONE,
+  findLocation,
+  mapPinPoint,
+  SAVED_TRIPS,
+  searchLocations,
+  type LocationPoint,
+  type RideResponse,
+  type SavedTrip,
+} from "../api/types";
+import type { MapPickMode } from "../components/LiveMap";
 import type { RiderUiState } from "../components/RiderPanel";
 
 function statusToUi(status: string | undefined): RiderUiState | null {
@@ -43,7 +55,10 @@ export function useRiderSession() {
   const [riderName, setRiderName] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [ui, setUi] = useState<RiderUiState>("IDLE");
-  const [place, setPlace] = useState<Place | null>(null);
+  const [pickup, setPickup] = useState<LocationPoint>(DEFAULT_PICKUP);
+  const [dropoff, setDropoff] = useState<LocationPoint | null>(null);
+  const [pickMode, setPickMode] = useState<MapPickMode>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [ride, setRide] = useState<RideResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +69,11 @@ export function useRiderSession() {
 
   const pollRef = useRef<number | null>(null);
   const carTimerRef = useRef<number | null>(null);
+
+  const searchResults = useMemo(
+    () => searchLocations(searchQuery, pickup.id),
+    [searchQuery, pickup.id],
+  );
 
   const clearPoll = () => {
     if (pollRef.current != null) {
@@ -166,7 +186,10 @@ export function useRiderSession() {
     clearPoll();
     stopCar();
     setUi("IDLE");
-    setPlace(null);
+    setPickup(DEFAULT_PICKUP);
+    setDropoff(null);
+    setPickMode(null);
+    setSearchQuery("");
     setRide(null);
     setProgress(15);
     setCarVisible(false);
@@ -211,7 +234,6 @@ export function useRiderSession() {
           pollRef.current = window.setTimeout(tick, 1500);
           return;
         }
-        // Keep following driver-driven transitions
         pollRef.current = window.setTimeout(tick, 1500);
       } catch (e) {
         if (!cancelled) fail(e);
@@ -255,25 +277,57 @@ export function useRiderSession() {
     [],
   );
 
-  const pickPlace = (p: Place) => {
-    setPlace(p);
+  const goEstimate = (nextPickup: LocationPoint, nextDropoff: LocationPoint) => {
+    setPickup(nextPickup);
+    setDropoff(nextDropoff);
+    setPickMode(null);
     setUi("ESTIMATE");
     setError(null);
   };
 
+  const pickDropoff = (loc: LocationPoint) => {
+    goEstimate(pickup, loc);
+  };
+
+  const pickSavedTrip = (trip: SavedTrip) => {
+    const from = findLocation(trip.pickupId) ?? DEFAULT_PICKUP;
+    const to = findLocation(trip.dropoffId);
+    if (!to) return;
+    goEstimate(from, to);
+  };
+
+  const setPickModeSafe = (mode: MapPickMode) => {
+    setPickMode(mode);
+    setError(null);
+  };
+
+  const onMapPick = (lat: number, lng: number) => {
+    if (!pickMode) return;
+    if (pickMode === "pickup") {
+      const point = mapPinPoint(lat, lng, "Pickup");
+      setPickup(point);
+      setPickMode(dropoff ? null : "dropoff");
+      if (dropoff) setUi("ESTIMATE");
+      return;
+    }
+    const point = mapPinPoint(lat, lng, "Dropoff");
+    goEstimate(pickup, point);
+  };
+
   const requestRide = async () => {
-    if (!place || !riderId) return;
+    if (!dropoff || !riderId) return;
     const body = await run(() =>
       ridesApi.book({
-        pickupLat: place.pickupLat,
-        pickupLng: place.pickupLng,
-        dropoffLat: place.dropoffLat,
-        dropoffLng: place.dropoffLng,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        dropoffLat: dropoff.lat,
+        dropoffLng: dropoff.lng,
       }),
     );
     if (!body) return;
     setRide(body);
     setUi("FINDING");
+    setPickMode(null);
     setCarVisible(false);
   };
 
@@ -285,18 +339,24 @@ export function useRiderSession() {
     const body = await run(() => ridesApi.cancel(ride.id, "rider"));
     if (body) resetRider();
   };
+
   const showDrop =
     ui === "ESTIMATE" ||
     ui === "FINDING" ||
     ui === "MATCHED" ||
     ui === "ENROUTE" ||
     ui === "TRIP" ||
-    ui === "DONE";
+    ui === "DONE" ||
+    dropoff != null;
 
   const redisHint =
-    ui === "FINDING"
-      ? "redis> GEOSEARCH drivers expanding radius…"
-      : "redis> GEOSEARCH drivers +500m → online";
+    pickMode === "pickup"
+      ? "tap map → set pickup lat/lng"
+      : pickMode === "dropoff"
+        ? "tap map → set dropoff lat/lng"
+        : ui === "FINDING"
+          ? "redis> GEOSEARCH drivers expanding radius…"
+          : "redis> GEOSEARCH drivers +500m → online";
 
   return {
     authReady,
@@ -305,8 +365,12 @@ export function useRiderSession() {
     register,
     logout,
     ui,
-    place,
-    places: PLACES,
+    pickup,
+    dropoff,
+    pickMode,
+    searchQuery,
+    searchResults,
+    savedTrips: SAVED_TRIPS,
     ride,
     busy,
     error,
@@ -318,7 +382,11 @@ export function useRiderSession() {
     redisHint,
     statusPill: pillFor(ui, riderName),
     demoHint: `Demo: ${DEMO_RIDER_PHONE} / ${DEMO_PASSWORD}`,
-    pickPlace,
+    onSearch: setSearchQuery,
+    pickDropoff,
+    pickSavedTrip,
+    setPickMode: setPickModeSafe,
+    onMapPick,
     backIdle: resetRider,
     requestRide,
     cancelRide,
