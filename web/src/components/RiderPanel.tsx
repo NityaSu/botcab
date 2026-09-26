@@ -1,5 +1,8 @@
-import type { Place, RideResponse } from "../api/types";
+import { useMemo, useState } from "react";
+import type { LocationPoint, RideResponse, SavedTrip } from "../api/types";
 import { formatDistanceKm, formatKhr } from "../lib/format";
+import { estimateFareCents, haversineKm } from "../lib/geo";
+import type { MapPickMode } from "./LiveMap";
 import { CabIcon, CheckIcon, PinIcon, SearchIcon, StarIcon } from "./icons";
 
 export type RiderUiState =
@@ -14,37 +17,59 @@ export type RiderUiState =
 type Props = {
   ui: RiderUiState;
   riderName: string;
-  place: Place | null;
+  pickup: LocationPoint;
+  dropoff: LocationPoint | null;
+  pickMode: MapPickMode;
   ride: RideResponse | null;
   busy: boolean;
   error: string | null;
   progress: number;
-  onPickPlace: (place: Place) => void;
+  savedTrips: SavedTrip[];
+  searchResults: LocationPoint[];
+  onSearch: (query: string) => void;
+  onPickDropoff: (loc: LocationPoint) => void;
+  onPickSavedTrip: (trip: SavedTrip) => void;
+  onSetPickMode: (mode: MapPickMode) => void;
   onBackIdle: () => void;
   onRequest: () => void;
   onCancel: () => void;
   onBookAgain: () => void;
-  places: Place[];
 };
 
 export function RiderPanel({
   ui,
   riderName,
-  place,
+  pickup,
+  dropoff,
+  pickMode,
   ride,
   busy,
   error,
   progress,
-  onPickPlace,
+  savedTrips,
+  searchResults,
+  onSearch,
+  onPickDropoff,
+  onPickSavedTrip,
+  onSetPickMode,
   onBackIdle,
   onRequest,
   onCancel,
   onBookAgain,
-  places,
 }: Props) {
+  const [query, setQuery] = useState("");
   const fare = ride?.fare;
-  const estimateMid = 9600;
-  const surge = fare?.surgeMultiplier ?? 1.4;
+
+  const preview = useMemo(() => {
+    if (!dropoff) return null;
+    const km = haversineKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
+    return { km, cents: estimateFareCents(km) };
+  }, [pickup, dropoff]);
+
+  function handleSearchChange(value: string) {
+    setQuery(value);
+    onSearch(value);
+  }
 
   return (
     <div className="bc-panel">
@@ -56,48 +81,151 @@ export function RiderPanel({
             Good evening, {riderName}
           </div>
           <div className="bc-hero">Where to?</div>
-          <div className="bc-search">
+
+          <button
+            type="button"
+            className={`bc-stop-card${pickMode === "pickup" ? " is-active" : ""}`}
+            onClick={() => onSetPickMode(pickMode === "pickup" ? null : "pickup")}
+          >
+            <i className="bc-dot" />
+            <span>
+              <span className="bc-meta">Pickup</span>
+              <span className="bc-row-title">{pickup.name}</span>
+              <span className="bc-meta">{pickup.detail}</span>
+            </span>
+          </button>
+
+          <label className="bc-search bc-search-input">
             <SearchIcon />
-            <span>Search destination</span>
+            <input
+              value={query}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => onSetPickMode("dropoff")}
+              placeholder="Search destination"
+              aria-label="Search destination"
+            />
+          </label>
+          <div className="bc-meta bc-mb8">
+            {pickMode === "pickup"
+              ? "Tap the map to move pickup — or pick a saved trip"
+              : pickMode === "dropoff"
+                ? "Tap the map or choose a place below"
+                : "Search, saved trip, or tap map for dropoff"}
           </div>
-          <div className="bc-meta" style={{ marginBottom: 4 }}>
-            Saved places
-          </div>
-          {places.map((p) => (
-            <button key={p.name} type="button" className="bc-row" onClick={() => onPickPlace(p)}>
-              <PinIcon />
-              <span>
-                <span className="bc-row-title">{p.name}</span>
-                <span className="bc-meta">{p.detail}</span>
-              </span>
-            </button>
-          ))}
+
+          {query.trim() ? (
+            <>
+              <div className="bc-meta" style={{ marginBottom: 4 }}>
+                Results
+              </div>
+              {searchResults.length === 0 && (
+                <div className="bc-meta bc-center">No places match</div>
+              )}
+              {searchResults.map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  className="bc-row"
+                  onClick={() => {
+                    onPickDropoff(loc);
+                    setQuery("");
+                    onSearch("");
+                  }}
+                >
+                  <PinIcon />
+                  <span>
+                    <span className="bc-row-title">{loc.name}</span>
+                    <span className="bc-meta">{loc.detail}</span>
+                  </span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="bc-meta" style={{ marginBottom: 4 }}>
+                Saved trips
+              </div>
+              {savedTrips.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className="bc-row"
+                  onClick={() => onPickSavedTrip(t)}
+                >
+                  <PinIcon />
+                  <span>
+                    <span className="bc-row-title">{t.label}</span>
+                    <span className="bc-meta">{t.detail}</span>
+                  </span>
+                </button>
+              ))}
+              <div className="bc-meta" style={{ margin: "12px 0 4px" }}>
+                Popular
+              </div>
+              {searchResults.slice(0, 5).map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  className="bc-row"
+                  onClick={() => onPickDropoff(loc)}
+                >
+                  <PinIcon />
+                  <span>
+                    <span className="bc-row-title">{loc.name}</span>
+                    <span className="bc-meta">{loc.detail}</span>
+                  </span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
       )}
 
-      {ui === "ESTIMATE" && place && (
+      {ui === "ESTIMATE" && dropoff && preview && (
         <div className="bc-fade">
           <div className="bc-title">
-            {place.name} → Wat Phnom
+            {pickup.name} → {dropoff.name}
           </div>
-          <div className="bc-meta bc-mb12">{place.distanceLabel}</div>
+          <div className="bc-meta bc-mb12">
+            {formatDistanceKm(preview.km)} · est. fare
+          </div>
           <div className="bc-fare-row">
-            <span className="bc-fare">៛8,600 – ៛10,200</span>
-            <span className="bc-chip bc-chip-warn">Surge ×{surge.toFixed(1)}</span>
+            <span className="bc-fare">{formatKhr(preview.cents)}</span>
+            <span className="bc-chip bc-chip-muted">pre-surge</span>
           </div>
           <div className="bc-meta bc-mb16">
-            High demand right now — drivers nearby via Redis GEO
+            Final fare uses live demand surge when the trip completes
           </div>
           <div className="bc-product">
             <CabIcon size={22} />
             <div className="bc-grow">
               <div className="bc-product-name">BotCab Go</div>
-              <div className="bc-meta">4 seats · arrives in ~3 min</div>
+              <div className="bc-meta">
+                {dropoff.detail} · {formatDistanceKm(preview.km)}
+              </div>
             </div>
             <div className="bc-right">
-              <div className="bc-product-price">{formatKhr(estimateMid)}</div>
+              <div className="bc-product-price">{formatKhr(preview.cents)}</div>
               <div className="bc-meta">est.</div>
             </div>
+          </div>
+          <div className="bc-actions-row">
+            <button
+              type="button"
+              className="bc-btn bc-btn-ghost"
+              disabled={busy}
+              onClick={() => onSetPickMode("pickup")}
+            >
+              Edit pickup
+            </button>
+            <button
+              type="button"
+              className="bc-btn bc-btn-ghost"
+              disabled={busy}
+              onClick={() => onSetPickMode("dropoff")}
+            >
+              Edit dropoff
+            </button>
           </div>
           <button type="button" className="bc-btn bc-btn-pri" disabled={busy} onClick={onRequest}>
             {busy ? "Requesting…" : "Request BotCab"}
