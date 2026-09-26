@@ -1,5 +1,7 @@
 package com.botcab.matching;
 
+import com.botcab.common.auth.AuthPrincipal;
+import com.botcab.common.auth.Role;
 import com.botcab.driver.DriverService;
 import com.botcab.ride.Ride;
 import com.botcab.ride.RideService;
@@ -216,7 +218,10 @@ public class OfferService {
     }
 
     private void push(OfferMessage msg) {
-        messaging.convertAndSend("/topic/drivers/" + msg.driverId() + "/offers", msg);
+        messaging.convertAndSendToUser(
+                AuthPrincipal.stompName(Role.DRIVER, msg.driverId()),
+                "/queue/offers",
+                msg);
         messaging.convertAndSend("/topic/rides/" + msg.rideId(), msg);
     }
 

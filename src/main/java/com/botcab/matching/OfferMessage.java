@@ -2,7 +2,7 @@ package com.botcab.matching;
 
 import java.time.Instant;
 
-/** Pushed over STOMP to {@code /topic/drivers/{driverId}/offers} and {@code /topic/rides/{rideId}}. */
+/** Pushed over STOMP to the driver's {@code /user/queue/offers} and {@code /topic/rides/{rideId}}. */
 public record OfferMessage(
         String offerId,
         long rideId,

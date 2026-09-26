@@ -7,7 +7,6 @@ import com.botcab.ride.RideStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -16,7 +15,6 @@ import java.math.BigDecimal;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -59,7 +57,7 @@ class OfferServiceTest {
         assertEquals(2L, msg.driverId());
         assertEquals(OfferStatus.PENDING, msg.status());
         assertEquals("offer", msg.note());
-        verify(messaging).convertAndSend(eq("/topic/drivers/2/offers"), any(OfferMessage.class));
+        verify(messaging).convertAndSendToUser(eq("driver:2"), eq("/queue/offers"), any(OfferMessage.class));
         verify(messaging).convertAndSend(eq("/topic/rides/10"), any(OfferMessage.class));
     }
 
@@ -94,10 +92,8 @@ class OfferServiceTest {
         assertEquals(7L, second.rideId());
         assertEquals(OfferStatus.PENDING, second.status());
         verify(drivers).releaseOffer(1L);
-        ArgumentCaptor<String> topic = ArgumentCaptor.forClass(String.class);
-        verify(messaging, org.mockito.Mockito.atLeast(2))
-                .convertAndSend(topic.capture(), any(OfferMessage.class));
-        assertTrue(topic.getAllValues().stream().anyMatch(t -> t.contains("/drivers/3/")));
+        verify(messaging, org.mockito.Mockito.atLeastOnce())
+                .convertAndSendToUser(eq("driver:3"), eq("/queue/offers"), any(OfferMessage.class));
     }
 
     private static Ride requestedRide(long id) {
