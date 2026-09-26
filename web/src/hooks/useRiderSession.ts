@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { persistAuth, riderAuthApi } from "../api/auth";
 import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
 import { ridesApi } from "../api/rides";
@@ -16,6 +16,7 @@ import {
 } from "../api/types";
 import type { MapPickMode } from "../components/LiveMap";
 import type { RiderUiState } from "../components/RiderPanel";
+import { useRideLocation } from "./useRideLocation";
 
 function statusToUi(status: string | undefined): RiderUiState | null {
   switch (status) {
@@ -66,9 +67,21 @@ export function useRiderSession() {
   const [carT, setCarT] = useState(0.12);
   const [carVisible, setCarVisible] = useState(false);
   const [progress, setProgress] = useState(15);
+  const [routeKm, setRouteKm] = useState<number | null>(null);
 
   const pollRef = useRef<number | null>(null);
   const carTimerRef = useRef<number | null>(null);
+
+  const liveTracking =
+    ui === "MATCHED" || ui === "ENROUTE" || ui === "TRIP" || ui === "DONE";
+  const { position: liveLocation, connected: liveConnected } = useRideLocation(
+    ride?.id ?? null,
+    "rider",
+    Boolean(ride && liveTracking),
+  );
+  const driverPosition = liveLocation
+    ? { lat: liveLocation.lat, lng: liveLocation.lng }
+    : null;
 
   const searchResults = useMemo(
     () => searchLocations(searchQuery, pickup.id),
@@ -88,13 +101,6 @@ export function useRiderSession() {
       carTimerRef.current = null;
     }
   };
-
-  const startCar = useCallback(() => {
-    stopCar();
-    carTimerRef.current = window.setInterval(() => {
-      setCarT((t) => Math.min(t + 0.0035, 0.97));
-    }, 50);
-  }, []);
 
   const fail = (e: unknown) => {
     if (e instanceof ApiRequestError) {
@@ -195,6 +201,7 @@ export function useRiderSession() {
     setCarVisible(false);
     setCarT(0.12);
     setError(null);
+    setRouteKm(null);
   };
 
   useEffect(() => {
@@ -247,27 +254,30 @@ export function useRiderSession() {
   }, [ride?.id, ui]);
 
   useEffect(() => {
+    // Live GPS drives the car; keep a soft progress bar for the panel only.
     if (ui === "ENROUTE" || ui === "TRIP") {
       setCarVisible(true);
-      startCar();
       const bar = window.setInterval(() => {
         setProgress((p) => Math.min(p + 2, ui === "TRIP" ? 92 : 70));
       }, 400);
       return () => {
-        stopCar();
         window.clearInterval(bar);
       };
     }
-    if (ui === "IDLE" || ui === "DONE") {
+    if (ui === "IDLE") {
       stopCar();
       setCarT(0.12);
-      if (ui === "IDLE") setCarVisible(false);
+      setCarVisible(false);
+    }
+    if (ui === "DONE") {
+      stopCar();
+      setCarVisible(true);
     }
     if (ui === "MATCHED") {
       setCarVisible(true);
       setCarT(0.12);
     }
-  }, [ui, startCar]);
+  }, [ui]);
 
   useEffect(
     () => () => {
@@ -351,12 +361,16 @@ export function useRiderSession() {
 
   const redisHint =
     pickMode === "pickup"
-      ? "tap map → set pickup lat/lng"
+      ? "tap map → set pickup"
       : pickMode === "dropoff"
-        ? "tap map → set dropoff lat/lng"
-        : ui === "FINDING"
-          ? "redis> GEOSEARCH drivers expanding radius…"
-          : "redis> GEOSEARCH drivers +500m → online";
+        ? "tap map → set dropoff"
+        : driverPosition
+          ? `live driver · ${driverPosition.lat.toFixed(4)}, ${driverPosition.lng.toFixed(4)}${liveConnected ? "" : " · reconnecting"}`
+          : dropoff
+            ? liveTracking
+              ? "waiting for driver GPS · STOMP /topic/rides"
+              : "OSRM driving route · OpenFreeMap"
+            : "OpenFreeMap · tap or search a destination";
 
   return {
     authReady,
@@ -376,9 +390,12 @@ export function useRiderSession() {
     error,
     fieldErrors,
     carT,
-    carVisible,
+    carVisible: carVisible || driverPosition != null,
+    driverPosition,
     progress,
     showDrop,
+    routeKm,
+    setRouteKm,
     redisHint,
     statusPill: pillFor(ui, riderName),
     demoHint: `Demo: ${DEMO_RIDER_PHONE} / ${DEMO_PASSWORD}`,

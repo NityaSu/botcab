@@ -23,11 +23,13 @@ export function RiderApp() {
             showDrop={s.showDrop}
             carVisible={s.carVisible}
             carT={s.carT}
+            driverPosition={s.driverPosition}
             redisHint={s.redisHint}
             pickMode={mapInteractive ? s.pickMode : null}
             pickup={s.pickup}
             dropoff={s.dropoff}
             onMapPick={mapInteractive ? s.onMapPick : undefined}
+            onRouteDistanceKm={s.setRouteKm}
           />
           {!s.authReady ? (
             <div className="bc-panel">
@@ -55,6 +57,7 @@ export function RiderApp() {
               busy={s.busy}
               error={s.error}
               progress={s.progress}
+              routeKm={s.routeKm}
               savedTrips={s.savedTrips}
               searchResults={s.searchResults}
               onSearch={s.onSearch}

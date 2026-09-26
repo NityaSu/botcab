@@ -24,6 +24,8 @@ type Props = {
   busy: boolean;
   error: string | null;
   progress: number;
+  /** Road distance from OSRM when available; otherwise haversine */
+  routeKm: number | null;
   savedTrips: SavedTrip[];
   searchResults: LocationPoint[];
   onSearch: (query: string) => void;
@@ -46,6 +48,7 @@ export function RiderPanel({
   busy,
   error,
   progress,
+  routeKm,
   savedTrips,
   searchResults,
   onSearch,
@@ -62,9 +65,9 @@ export function RiderPanel({
 
   const preview = useMemo(() => {
     if (!dropoff) return null;
-    const km = haversineKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
-    return { km, cents: estimateFareCents(km) };
-  }, [pickup, dropoff]);
+    const km = routeKm ?? haversineKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
+    return { km, cents: estimateFareCents(km), fromRoute: routeKm != null };
+  }, [pickup, dropoff, routeKm]);
 
   function handleSearchChange(value: string) {
     setQuery(value);
@@ -187,7 +190,8 @@ export function RiderPanel({
             {pickup.name} → {dropoff.name}
           </div>
           <div className="bc-meta bc-mb12">
-            {formatDistanceKm(preview.km)} · est. fare
+            {formatDistanceKm(preview.km)}
+            {preview.fromRoute ? " · road" : " · straight-line"} · est. fare
           </div>
           <div className="bc-fare-row">
             <span className="bc-fare">{formatKhr(preview.cents)}</span>

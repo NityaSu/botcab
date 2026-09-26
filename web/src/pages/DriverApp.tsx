@@ -8,6 +8,15 @@ import { useDriverSession } from "../hooks/useDriverSession";
 export function DriverApp() {
   const s = useDriverSession();
 
+  const pickup =
+    s.offer != null
+      ? { lat: s.offer.pickupLat, lng: s.offer.pickupLng }
+      : s.ride != null
+        ? { lat: s.ride.pickupLat, lng: s.ride.pickupLng }
+        : null;
+  const dropoff =
+    s.ride != null ? { lat: s.ride.dropoffLat, lng: s.ride.dropoffLng } : null;
+
   return (
     <div className="app-shell">
       <div className="botcab">
@@ -19,10 +28,18 @@ export function DriverApp() {
         />
         <div className="bc-layout">
           <LiveMap
-            showDrop={Boolean(s.ride || s.offer)}
-            carVisible={s.phase === "enroute" || s.phase === "trip" || s.phase === "done"}
-            carT={s.phase === "done" ? 0.97 : s.phase === "trip" ? 0.55 : 0.2}
-            redisHint={s.redisHint}
+            showDrop={Boolean(dropoff)}
+            carVisible={Boolean(s.livePosition)}
+            driverPosition={s.livePosition}
+            redisHint={
+              s.livePosition
+                ? s.redisHint
+                : pickup
+                  ? "OSRM route · waiting for live GPS"
+                  : s.redisHint
+            }
+            pickup={pickup}
+            dropoff={dropoff}
           />
           {!s.authReady ? (
             <div className="bc-panel">
