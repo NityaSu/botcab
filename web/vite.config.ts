@@ -11,6 +11,11 @@ export default defineConfig({
         target: "ws://localhost:8080",
         ws: true,
       },
+      "/osrm": {
+        target: "https://router.project-osrm.org",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/osrm/, ""),
+      },
     },
   },
 });
