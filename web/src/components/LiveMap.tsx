@@ -1,4 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
+import { latLngToSvg, svgToLatLng } from "../lib/geo";
+
+export type MapPickMode = "pickup" | "dropoff" | null;
 
 type Props = {
   showDrop: boolean;
@@ -6,14 +9,28 @@ type Props = {
   /** 0..1 along the route path */
   carT: number;
   redisHint?: string;
+  pickMode?: MapPickMode;
+  pickup?: { lat: number; lng: number } | null;
+  dropoff?: { lat: number; lng: number } | null;
+  onMapPick?: (lat: number, lng: number) => void;
 };
 
 const ROUTE =
   "M140 320 C 200 320, 210 260, 260 250 S 330 230, 350 190 S 420 150, 470 110";
 
-export function LiveMap({ showDrop, carVisible, carT, redisHint }: Props) {
+export function LiveMap({
+  showDrop,
+  carVisible,
+  carT,
+  redisHint,
+  pickMode = null,
+  pickup = null,
+  dropoff = null,
+  onMapPick,
+}: Props) {
   const routeRef = useRef<SVGPathElement>(null);
   const carRef = useRef<SVGGElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const route = routeRef.current;
@@ -24,9 +41,32 @@ export function LiveMap({ showDrop, carVisible, carT, redisHint }: Props) {
     car.setAttribute("transform", `translate(${p.x},${p.y})`);
   }, [carT, carVisible]);
 
+  function handleClick(e: MouseEvent<SVGSVGElement>) {
+    if (!pickMode || !onMapPick || !svgRef.current) return;
+    const svg = svgRef.current;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const local = pt.matrixTransform(ctm.inverse());
+    const { lat, lng } = svgToLatLng(local.x, local.y);
+    onMapPick(lat, lng);
+  }
+
+  const pickupSvg = pickup ? latLngToSvg(pickup.lat, pickup.lng) : null;
+  const dropoffSvg = dropoff ? latLngToSvg(dropoff.lat, dropoff.lng) : null;
+
   return (
-    <div className="bc-map-wrap">
-      <svg viewBox="0 0 600 400" className="bc-map" aria-hidden>
+    <div className={`bc-map-wrap${pickMode ? " is-picking" : ""}`}>
+      <svg
+        ref={svgRef}
+        viewBox="0 0 600 400"
+        className="bc-map"
+        onClick={handleClick}
+        role={pickMode ? "button" : "img"}
+        aria-label={pickMode ? `Tap map to set ${pickMode}` : "Live map"}
+      >
         <g
           stroke="color-mix(in srgb, var(--bc-q) 45%, transparent)"
           strokeWidth="1.5"
@@ -77,38 +117,61 @@ export function LiveMap({ showDrop, carVisible, carT, redisHint }: Props) {
           stroke="var(--bc-pri)"
           strokeWidth="3.5"
           strokeLinecap="round"
-          opacity=".85"
+          opacity={pickupSvg && dropoffSvg ? 0.35 : 0.85}
         />
-        <g>
-          <circle cx="250" cy="140" r="5" fill="var(--bc-sec)" />
-          <circle cx="420" cy="330" r="5" fill="var(--bc-sec)" />
-          <circle cx="160" cy="200" r="5" fill="var(--bc-sec)" />
-        </g>
-        <g>
-          <circle cx="140" cy="320" r="6" fill="var(--bc-pos)" />
-          <circle
-            cx="140"
-            cy="320"
-            r="6"
-            fill="none"
-            stroke="var(--bc-pos)"
-            strokeWidth="2"
-            className="bc-pulse"
-          />
-        </g>
-        <g opacity={showDrop ? 1 : 0}>
-          <circle cx="470" cy="110" r="11" fill="var(--bc-pri)" />
-          <text
-            x="470"
-            y="115"
-            textAnchor="middle"
-            fontSize="12"
-            fill="var(--bc-ink)"
-            fontWeight="700"
-          >
-            B
-          </text>
-        </g>
+        {pickupSvg && (
+          <g>
+            <circle cx={pickupSvg.x} cy={pickupSvg.y} r="7" fill="var(--bc-pos)" />
+            <circle
+              cx={pickupSvg.x}
+              cy={pickupSvg.y}
+              r="7"
+              fill="none"
+              stroke="var(--bc-pos)"
+              strokeWidth="2"
+              className="bc-pulse"
+            />
+            <text
+              x={pickupSvg.x}
+              y={pickupSvg.y - 12}
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="700"
+              fill="var(--bc-pos)"
+            >
+              A
+            </text>
+          </g>
+        )}
+        {dropoffSvg && showDrop && (
+          <g opacity={1}>
+            <circle cx={dropoffSvg.x} cy={dropoffSvg.y} r="11" fill="var(--bc-pri)" />
+            <text
+              x={dropoffSvg.x}
+              y={dropoffSvg.y + 4}
+              textAnchor="middle"
+              fontSize="12"
+              fill="var(--bc-ink)"
+              fontWeight="700"
+            >
+              B
+            </text>
+          </g>
+        )}
+        {!pickupSvg && (
+          <g>
+            <circle cx="140" cy="320" r="6" fill="var(--bc-pos)" />
+            <circle
+              cx="140"
+              cy="320"
+              r="6"
+              fill="none"
+              stroke="var(--bc-pos)"
+              strokeWidth="2"
+              className="bc-pulse"
+            />
+          </g>
+        )}
         <g ref={carRef} opacity={carVisible ? 1 : 0}>
           <rect x="-14" y="-9" width="28" height="18" rx="6" fill="var(--bc-pri)" />
           <rect x="-8" y="-5" width="10" height="10" rx="2.5" fill="var(--bc-ink)" opacity=".9" />
@@ -117,7 +180,11 @@ export function LiveMap({ showDrop, carVisible, carT, redisHint }: Props) {
       </svg>
       <div className="bc-chip bc-map-live">
         <span className="bc-dot" />
-        Live map
+        {pickMode === "pickup"
+          ? "Tap map · set pickup"
+          : pickMode === "dropoff"
+            ? "Tap map · set dropoff"
+            : "Live map"}
       </div>
       <div className="bc-redis">{redisHint ?? "redis> GEOSEARCH drivers +500m → online"}</div>
     </div>
