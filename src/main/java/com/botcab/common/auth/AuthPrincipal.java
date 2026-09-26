@@ -7,11 +7,22 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
 /** Authenticated user from JWT (rider or driver). */
-public record AuthPrincipal(long id, String phone, String fullName, Role role) {
+public record AuthPrincipal(long id, String phone, String fullName, Role role) implements Principal {
+
+    /** STOMP / {@code convertAndSendToUser} name, e.g. {@code driver:1}. */
+    public static String stompName(Role role, long id) {
+        return role.name().toLowerCase() + ":" + id;
+    }
+
+    @Override
+    public String getName() {
+        return stompName(role, id);
+    }
 
     public Authentication toAuthentication() {
         return new UsernamePasswordAuthenticationToken(
