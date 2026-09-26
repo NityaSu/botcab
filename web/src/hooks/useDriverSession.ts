@@ -11,6 +11,7 @@ import {
 } from "../api/types";
 import type { DriverPhase } from "../components/DriverPanel";
 import { useDriverOffers } from "./useDriverOffers";
+import { useDriverLivePings } from "./useDriverLivePings";
 
 function statusToPhase(status: string | undefined): DriverPhase | null {
   switch (status) {
@@ -155,6 +156,11 @@ export function useDriverSession() {
     onOffer,
   );
 
+  const liveEnabled =
+    Boolean(ride) &&
+    (phase === "accepted" || phase === "enroute" || phase === "trip");
+  const { position: livePosition } = useDriverLivePings(ride, phase, liveEnabled);
+
   useEffect(() => {
     if (!offer || offer.status !== "PENDING") {
       setSecondsLeft(null);
@@ -251,9 +257,11 @@ export function useDriverSession() {
     }
   }, [ride?.status, phase]);
 
-  const redisHint = online
-    ? `redis> GEOSEARCH drivers · driver ${driverId ?? "?"} online`
-    : "redis> GEOSEARCH drivers (offline)";
+  const redisHint = livePosition
+    ? `live ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)} · GEO + STOMP`
+    : online
+      ? `redis> GEOSEARCH drivers · driver ${driverId ?? "?"} online`
+      : "redis> GEOSEARCH drivers (offline)";
 
   return {
     authReady,
@@ -270,6 +278,7 @@ export function useDriverSession() {
     busy,
     error,
     fieldErrors,
+    livePosition,
     redisHint,
     statusPill: online ? "DRIVER · ONLINE" : "DRIVER",
     demoHint: `Demo: ${DEMO_DRIVER_PHONE} / ${DEMO_PASSWORD}`,

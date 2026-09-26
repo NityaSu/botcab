@@ -185,6 +185,22 @@ export type OfferMessage = {
   note: string;
 };
 
+/** STOMP payload on `/topic/rides/{id}` when the assigned driver pings. */
+export type DriverLocationMessage = {
+  event: "location";
+  rideId: number;
+  driverId: number;
+  lat: number;
+  lng: number;
+  at: string;
+};
+
+export function isDriverLocationMessage(body: unknown): body is DriverLocationMessage {
+  if (!body || typeof body !== "object") return false;
+  const o = body as Record<string, unknown>;
+  return o.event === "location" && typeof o.lat === "number" && typeof o.lng === "number";
+}
+
 export type FareView = {
   totalCents: number;
   currency: string;
