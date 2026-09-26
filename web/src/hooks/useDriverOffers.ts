@@ -1,5 +1,6 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import { useEffect, useRef, useState } from "react";
+import { getToken } from "../api/client";
 import type { OfferMessage } from "../api/types";
 
 function wsUrl(): string {
@@ -7,6 +8,7 @@ function wsUrl(): string {
   return `${proto}//${window.location.host}/ws`;
 }
 
+/** Subscribe to authenticated driver offers (`/user/queue/offers`). Requires driver JWT. */
 export function useDriverOffers(
   driverId: number,
   enabled: boolean,
@@ -17,7 +19,8 @@ export function useDriverOffers(
   onOfferRef.current = onOffer;
 
   useEffect(() => {
-    if (!enabled || !driverId) {
+    const token = getToken("driver");
+    if (!enabled || !driverId || !token) {
       setConnected(false);
       return;
     }
@@ -26,9 +29,12 @@ export function useDriverOffers(
     const client = new Client({
       brokerURL: wsUrl(),
       reconnectDelay: 2000,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       onConnect: () => {
         setConnected(true);
-        sub = client.subscribe(`/topic/drivers/${driverId}/offers`, (msg: IMessage) => {
+        sub = client.subscribe("/user/queue/offers", (msg: IMessage) => {
           try {
             const offer = JSON.parse(msg.body) as OfferMessage;
             onOfferRef.current(offer);
