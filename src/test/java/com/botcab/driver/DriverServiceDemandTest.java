@@ -1,5 +1,6 @@
 package com.botcab.driver;
 
+import com.botcab.ride.LiveLocationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,11 +19,14 @@ class DriverServiceDemandTest {
     @Mock
     DriverLocationStore locations;
 
+    @Mock
+    LiveLocationService liveLocation;
+
     DriverService service;
 
     @BeforeEach
     void setUp() {
-        service = new DriverService(drivers, locations);
+        service = new DriverService(drivers, locations, liveLocation);
     }
 
     @Test

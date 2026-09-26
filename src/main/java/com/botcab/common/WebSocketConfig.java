@@ -12,7 +12,8 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  * In-memory STOMP broker for a single app instance.
  * <p>
  * Driver offers go to the authenticated user queue {@code /user/queue/offers}
- * (JWT on CONNECT). {@code /topic/rides/{id}} remains pub-sub for ride-level events.
+ * (JWT on CONNECT). {@code /topic/rides/{id}} carries offer events and live
+ * driver location ({@code event: location}) for active trips.
  * <p>
  * Multi-instance production would replace {@code enableSimpleBroker} with an
  * external broker relay (RabbitMQ/Redis). We document that; we do not build it.

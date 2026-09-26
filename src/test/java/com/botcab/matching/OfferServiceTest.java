@@ -62,7 +62,7 @@ class OfferServiceTest {
     }
 
     @Test
-    void acceptAssignsRideAndClearsLocation() {
+    void acceptAssignsRideAndKeepsLocationForLiveTracking() {
         Ride ride = requestedRide(5L);
         when(matching.match(anyDouble(), anyDouble(), any()))
                 .thenReturn(new MatchResult(1L, 0.1, 1.0));
@@ -73,7 +73,7 @@ class OfferServiceTest {
 
         assertEquals(OfferStatus.ACCEPTED, accepted.status());
         verify(rides).assignDriver(5L, 1L);
-        verify(drivers).clearLiveLocation(1L);
+        verify(drivers, never()).clearLiveLocation(anyLong());
         verify(drivers, never()).releaseOffer(anyLong());
     }
 

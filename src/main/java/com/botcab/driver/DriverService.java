@@ -1,5 +1,6 @@
 package com.botcab.driver;
 
+import com.botcab.ride.LiveLocationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,10 +13,15 @@ public class DriverService {
 
     private final DriverRepository drivers;
     private final DriverLocationStore locations;
+    private final LiveLocationService liveLocation;
 
-    public DriverService(DriverRepository drivers, DriverLocationStore locations) {
+    public DriverService(
+            DriverRepository drivers,
+            DriverLocationStore locations,
+            LiveLocationService liveLocation) {
         this.drivers = drivers;
         this.locations = locations;
+        this.liveLocation = liveLocation;
     }
 
     public Driver require(long driverId) {
@@ -23,14 +29,22 @@ public class DriverService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Driver not found: " + driverId));
     }
 
+    /**
+     * Upsert Redis GEO. Available drivers are matchable; busy drivers on an active
+     * ride also stream lat/lng to {@code /topic/rides/{id}}.
+     */
     @Transactional
     public void pingLocation(long driverId, double lat, double lng) {
         Driver driver = require(driverId);
-        if (driver.getStatus() != DriverStatus.AVAILABLE) {
+        DriverStatus status = driver.getStatus();
+        if (status != DriverStatus.AVAILABLE && status != DriverStatus.BUSY) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Driver " + driverId + " is " + driver.getStatus() + ", not AVAILABLE");
+                    HttpStatus.CONFLICT, "Driver " + driverId + " is " + status + ", cannot ping");
         }
         locations.upsert(driverId, lat, lng);
+        if (status == DriverStatus.BUSY) {
+            liveLocation.broadcastIfOnTrip(driverId, lat, lng);
+        }
     }
 
     @Transactional
@@ -60,7 +74,7 @@ public class DriverService {
         return true;
     }
 
-    /** Offer accepted — drop live location until the trip ends. */
+    /** Drop GEO pin (cancel / go offline). Kept through accept so the trip can stream. */
     public void clearLiveLocation(long driverId) {
         locations.remove(driverId);
     }

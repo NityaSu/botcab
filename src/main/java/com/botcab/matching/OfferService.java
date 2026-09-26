@@ -106,7 +106,7 @@ public class OfferService {
         live.cancelTimeout();
         rides.assignDriver(live.rideId, live.driverId);
         live.status = OfferStatus.ACCEPTED;
-        drivers.clearLiveLocation(live.driverId);
+        // Keep Redis GEO pin — Phase 15 streams live location during the trip.
         OfferMessage msg = live.toMessage("accepted");
         push(msg);
         offers.remove(live.offerId);
