@@ -12,6 +12,8 @@ target/
 *.log
 web/node_modules/
 web/dist/
+src/main/resources/static/**
+!src/main/resources/static/.gitkeep
 .cursor/
 AGENTS.md
 DEPLOY.md
