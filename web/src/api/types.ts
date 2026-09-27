@@ -218,6 +218,10 @@ export type RideResponse = {
   pickupLng: number;
   dropoffLat: number;
   dropoffLng: number;
+  requestedAt?: string;
+  matchedAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
   version: number;
   offer: OfferMessage | null;
   fare: FareView | null;

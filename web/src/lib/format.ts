@@ -11,3 +11,16 @@ export function formatDistanceKm(km: number | null | undefined): string {
 export function shortPlace(lat: number, lng: number): string {
   return `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
 }
+
+/** Compact local datetime for history rows. */
+export function formatWhen(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

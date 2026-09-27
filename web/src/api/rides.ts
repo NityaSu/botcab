@@ -12,6 +12,8 @@ export const ridesApi = {
   book: (body: BookRideBody) => api.post<RideResponse>("/api/rides", body, "rider"),
   get: (id: number, role: "rider" | "driver" = "rider") =>
     api.get<RideResponse>(`/api/rides/${id}`, role),
+  history: (role: "rider" | "driver", limit = 20) =>
+    api.get<RideResponse[]>(`/api/rides/history?limit=${limit}`, role),
   cancel: (id: number, role: "rider" | "driver") =>
     api.post<RideResponse>(`/api/rides/${id}/cancel`, undefined, role),
   enRoute: (id: number) => api.post<RideResponse>(`/api/rides/${id}/en-route`, undefined, "driver"),
