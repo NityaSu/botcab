@@ -53,17 +53,22 @@ Open `http://localhost:5173`:
 
 Tip: open Rider and Driver in two tabs to run a full trip.
 
+Same-origin UI is only in the Docker image (see below). Local JVM keeps using Vite on `:5173`.
+
 ## Run (full stack in Docker — Phase 7)
 
 ```bash
 docker compose up --build
 ```
 
-Then:
+Then open **`http://localhost:8080`** (React UI + API + WebSocket on one origin):
 
 ```bash
 curl -s http://localhost:8080/actuator/health
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/
 ```
+
+The image builds `/web` with Node, copies `dist/` into Spring `classpath:/static/`, and proxies `/osrm` for driving routes.
 
 Postgres / Redis / the Spring app all run as Compose services. Config is env-driven (`SPRING_DATASOURCE_*`, `SPRING_DATA_REDIS_*`, `BOTCAB_JWT_SECRET`). See `.env.example`.
 
