@@ -34,6 +34,8 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/rides").hasRole("RIDER")
+                        .requestMatchers(HttpMethod.GET, "/api/rides/history").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/rides/*").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/cancel").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/accept").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/reject").hasRole("DRIVER")

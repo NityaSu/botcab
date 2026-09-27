@@ -10,8 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/rides")
@@ -28,9 +31,15 @@ public class RideController {
         return rides.book(AuthPrincipal.requireRiderId(), body);
     }
 
-    @GetMapping("/{id}")
+    /** Terminal rides for the current rider or driver, newest first. */
+    @GetMapping("/history")
+    public List<RideResponse> history(@RequestParam(defaultValue = "20") int limit) {
+        return rides.history(AuthPrincipal.require(), limit);
+    }
+
+    @GetMapping("/{id:\\d+}")
     public RideResponse get(@PathVariable("id") long id) {
-        return rides.get(id);
+        return rides.get(id, AuthPrincipal.require());
     }
 
     @PostMapping("/{id}/accept")

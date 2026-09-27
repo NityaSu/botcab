@@ -1,6 +1,8 @@
 package com.botcab.ride;
 
 import com.botcab.common.Haversine;
+import com.botcab.common.auth.AuthPrincipal;
+import com.botcab.common.auth.Role;
 import com.botcab.driver.DriverService;
 import com.botcab.fare.FareService;
 import com.botcab.fare.FareView;
@@ -9,6 +11,7 @@ import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
 import com.botcab.rider.RiderService;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,6 +20,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Booking HTTP: create a real {@link Ride} row, start matching, accept → {@code MATCHED},
@@ -78,9 +84,47 @@ public class RideService {
     }
 
     public RideResponse get(long rideId) {
+        return get(rideId, AuthPrincipal.require());
+    }
+
+    /** Load a ride the caller owns (rider or assigned driver), with fare when present. */
+    public RideResponse get(long rideId, AuthPrincipal auth) {
         Ride ride = require(rideId);
+        assertCanView(ride, auth);
         FareView fare = fares.findByRideId(rideId).map(FareView::from).orElse(null);
         return RideResponse.from(ride, null, fare);
+    }
+
+    /**
+     * Terminal rides for the JWT principal, newest first, with fare snapshots when completed.
+     */
+    public List<RideResponse> history(AuthPrincipal auth, int limit) {
+        int pageSize = Math.clamp(limit, 1, 50);
+        Set<RideStatus> terminal = EnumSet.of(RideStatus.COMPLETED, RideStatus.CANCELLED);
+        List<Ride> rows = switch (auth.role()) {
+            case RIDER -> rides.findByRiderIdAndStatusInOrderByEndedAtDesc(
+                    auth.id(), terminal, PageRequest.of(0, pageSize));
+            case DRIVER -> rides.findByDriverIdAndStatusInOrderByEndedAtDesc(
+                    auth.id(), terminal, PageRequest.of(0, pageSize));
+        };
+        return rows.stream().map(this::toHistoryItem).toList();
+    }
+
+    private RideResponse toHistoryItem(Ride ride) {
+        FareView fare = fares.findByRideId(ride.getId()).map(FareView::from).orElse(null);
+        return RideResponse.from(ride, null, fare);
+    }
+
+    private void assertCanView(Ride ride, AuthPrincipal auth) {
+        if (auth.role() == Role.RIDER && ride.getRiderId().equals(auth.id())) {
+            return;
+        }
+        if (auth.role() == Role.DRIVER
+                && ride.getDriverId() != null
+                && ride.getDriverId().equals(auth.id())) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a party to this ride");
     }
 
     /**
