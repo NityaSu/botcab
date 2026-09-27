@@ -29,6 +29,7 @@ type Props = {
   onEnRoute: () => void;
   onStart: () => void;
   onComplete: () => void;
+  onOpenHistory: () => void;
 };
 
 export function DriverPanel({
@@ -47,6 +48,7 @@ export function DriverPanel({
   onEnRoute,
   onStart,
   onComplete,
+  onOpenHistory,
 }: Props) {
   const offerPct =
     offer && secondsLeft != null ? Math.max(0, Math.min(100, (secondsLeft / 15) * 100)) : 0;
@@ -165,6 +167,17 @@ export function DriverPanel({
         )}
         {online && (phase === "idle" || phase === "waiting") && (
           <div className="bc-meta bc-center">Waiting for requests…</div>
+        )}
+
+        {(phase === "idle" || phase === "waiting" || (!online && phase !== "accepted" && phase !== "enroute" && phase !== "trip")) && (
+          <button
+            type="button"
+            className="bc-btn bc-btn-ghost"
+            style={{ marginTop: 16 }}
+            onClick={onOpenHistory}
+          >
+            Trip history
+          </button>
         )}
       </div>
     </div>

@@ -36,6 +36,7 @@ type Props = {
   onRequest: () => void;
   onCancel: () => void;
   onBookAgain: () => void;
+  onOpenHistory: () => void;
 };
 
 export function RiderPanel({
@@ -59,6 +60,7 @@ export function RiderPanel({
   onRequest,
   onCancel,
   onBookAgain,
+  onOpenHistory,
 }: Props) {
   const [query, setQuery] = useState("");
   const fare = ride?.fare;
@@ -181,6 +183,15 @@ export function RiderPanel({
               ))}
             </>
           )}
+
+          <button
+            type="button"
+            className="bc-btn bc-btn-ghost"
+            style={{ marginTop: 12 }}
+            onClick={onOpenHistory}
+          >
+            Ride history
+          </button>
         </div>
       )}
 

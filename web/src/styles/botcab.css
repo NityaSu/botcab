@@ -658,6 +658,20 @@ body {
   font-weight: 700;
 }
 
+.bc-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: min(48vh, 360px);
+  overflow: auto;
+}
+
+.bc-history-row {
+  width: 100%;
+  text-align: left;
+}
+
 .bc-driver-head {
   display: flex;
   align-items: center;
