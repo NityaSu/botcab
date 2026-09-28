@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { driversApi } from "../api/rides";
-import type { RideResponse } from "../api/types";
-import { fetchDrivingRoute, pointAlongRoute } from "../lib/routing";
-import type { DriverPhase } from "../components/DriverPanel";
+import { driversApi } from "@/api/rides";
+import type { RideResponse } from "@/api/types";
+import { fetchDrivingRoute, pointAlongRoute } from "@/lib/routing";
+import type { DriverPhase } from "@/features/driver/types";
 
 type LatLng = { lat: number; lng: number };
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { ridesApi } from "../api/rides";
-import type { RideResponse } from "../api/types";
-import { ApiRequestError } from "../api/client";
+import { ridesApi } from "@/api/rides";
+import type { RideResponse } from "@/api/types";
+import { ApiRequestError } from "@/api/client";
 
 export function useRideHistory(role: "rider" | "driver", enabled: boolean) {
   const [items, setItems] = useState<RideResponse[]>([]);

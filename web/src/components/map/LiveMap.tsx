@@ -8,7 +8,7 @@ import {
 } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { fetchDrivingRoute, pointAlongRoute } from "../lib/routing";
+import { fetchDrivingRoute, pointAlongRoute } from "@/lib/routing";
 
 export type MapPickMode = "pickup" | "dropoff" | null;
 
@@ -107,7 +107,7 @@ export function LiveMap({
           source: ROUTE_SOURCE,
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-            "line-color": "#3ecf8e",
+            "line-color": "#06a94d",
             "line-width": 4,
             "line-opacity": 0.9,
           },
@@ -278,17 +278,19 @@ export function LiveMap({
   }, [carVisible, carT, routeTick, driverPosition?.lat, driverPosition?.lng]);
 
   return (
-    <div className={`bc-map-wrap${pickMode ? " is-picking" : ""}`}>
-      <div ref={containerRef} className="bc-map bc-map-canvas" role="presentation" />
-      <div className="bc-chip bc-map-live">
-        <span className="bc-dot" />
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="bc-map-canvas" role="presentation" />
+      <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/95 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm">
+        <span className="w-2 h-2 rounded-full bg-brand" />
         {pickMode === "pickup"
           ? "Tap map · set pickup"
           : pickMode === "dropoff"
             ? "Tap map · set dropoff"
             : "Live map"}
       </div>
-      <div className="bc-redis">{redisHint ?? "OSRM route · OpenFreeMap tiles"}</div>
+      <div className="absolute bottom-3 left-3 bg-white/80 rounded-full px-3 py-1 text-[11px] text-neutral-500">
+        {redisHint ?? "OSRM route · OpenFreeMap tiles"}
+      </div>
     </div>
   );
 }

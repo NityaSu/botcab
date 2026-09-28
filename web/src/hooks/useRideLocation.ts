@@ -1,7 +1,7 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import { useEffect, useRef, useState } from "react";
-import { getToken, type TokenRole } from "../api/client";
-import { isDriverLocationMessage, type DriverLocationMessage } from "../api/types";
+import { getToken, type TokenRole } from "@/api/client";
+import { isDriverLocationMessage, type DriverLocationMessage } from "@/api/types";
 
 function wsUrl(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";

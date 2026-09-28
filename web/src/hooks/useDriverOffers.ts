@@ -1,7 +1,7 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import { useEffect, useRef, useState } from "react";
-import { getToken } from "../api/client";
-import type { OfferMessage } from "../api/types";
+import { getToken } from "@/api/client";
+import type { OfferMessage } from "@/api/types";
 
 function wsUrl(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";

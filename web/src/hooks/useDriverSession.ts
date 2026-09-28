@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { driverAuthApi, persistAuth } from "../api/auth";
-import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
-import { driversApi, ridesApi } from "../api/rides";
-import {
-  DEFAULT_PICKUP,
-  DEMO_DRIVER_PHONE,
-  DEMO_PASSWORD,
-  type OfferMessage,
-  type RideResponse,
-} from "../api/types";
-import type { DriverPhase } from "../components/DriverPanel";
+import { driverAuthApi, persistAuth } from "@/api/auth";
+import { getToken, setActiveRole, setToken, ApiRequestError } from "@/api/client";
+import { driversApi, ridesApi } from "@/api/rides";
+import { DEMO_DRIVER_PHONE, DEMO_PASSWORD } from "@/constants/demo";
+import { DEFAULT_PICKUP } from "@/constants/locations";
+import type { OfferMessage, RideResponse } from "@/api/types";
+import type { DriverPhase } from "@/features/driver/types";
 import { useDriverOffers } from "./useDriverOffers";
 import { useDriverLivePings } from "./useDriverLivePings";
 

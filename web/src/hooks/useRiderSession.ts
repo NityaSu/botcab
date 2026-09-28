@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { persistAuth, riderAuthApi } from "../api/auth";
-import { getToken, setActiveRole, setToken, ApiRequestError } from "../api/client";
-import { ridesApi } from "../api/rides";
+import { persistAuth, riderAuthApi } from "@/api/auth";
+import { getToken, setActiveRole, setToken, ApiRequestError } from "@/api/client";
+import { ridesApi } from "@/api/rides";
+import { DEMO_PASSWORD, DEMO_RIDER_PHONE } from "@/constants/demo";
 import {
   DEFAULT_PICKUP,
-  DEMO_PASSWORD,
-  DEMO_RIDER_PHONE,
   findLocation,
   mapPinPoint,
   SAVED_TRIPS,
   searchLocations,
   type LocationPoint,
-  type RideResponse,
   type SavedTrip,
-} from "../api/types";
-import type { MapPickMode } from "../components/LiveMap";
-import type { RiderUiState } from "../components/RiderPanel";
+} from "@/constants/locations";
+import type { RideResponse } from "@/api/types";
+import type { MapPickMode } from "@/components/map/LiveMap";
+import type { RiderUiState } from "@/features/rider/types";
 import { useRideLocation } from "./useRideLocation";
 
 function statusToUi(status: string | undefined): RiderUiState | null {

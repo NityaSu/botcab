@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ridesApi } from "../api/rides";
-import type { RideResponse } from "../api/types";
+import { ridesApi } from "@/api/rides";
+import type { RideResponse } from "@/api/types";
 
 /** Poll ride until status leaves `whileStatuses` or timeout. */
 export function useRidePoll(
