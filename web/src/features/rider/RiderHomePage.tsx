@@ -93,6 +93,7 @@ export function RiderHomePage() {
             busy={s.busy}
             onCancel={s.cancelRide}
             onBookAgain={s.bookAgain}
+            onRate={s.rateRide}
           />
         )}
       </Card>

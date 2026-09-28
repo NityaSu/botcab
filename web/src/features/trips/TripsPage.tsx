@@ -1,9 +1,12 @@
 import { Navigate } from "react-router-dom";
 import type { RideResponse } from "@/api/types";
+import type { TokenRole } from "@/api/client";
+import { RateTripCard } from "@/components/RateTripCard";
 import { ArrowLeftIcon, CheckIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { StarRating } from "@/components/ui/StarRating";
 import { useI18n } from "@/i18n";
 import { formatKhr, formatWhen, shortPlace } from "@/lib/format";
 import { useRideHistory } from "@/hooks/useRideHistory";
@@ -33,7 +36,13 @@ export function TripsPage() {
       )}
 
       {history.selected ? (
-        <Receipt ride={history.selected} onBack={history.clearSelect} />
+        <Receipt
+          ride={history.selected}
+          role={current?.role ?? "rider"}
+          busy={history.busy}
+          onRate={history.rate}
+          onBack={history.clearSelect}
+        />
       ) : history.busy && history.items.length === 0 ? (
         <div className="grid place-items-center py-16">
           <div className="w-10 h-10 rounded-full border-4 border-neutral-200 border-t-brand animate-spin" />
@@ -72,7 +81,19 @@ export function TripsPage() {
   );
 }
 
-function Receipt({ ride, onBack }: { ride: RideResponse; onBack: () => void }) {
+function Receipt({
+  ride,
+  role,
+  busy,
+  onRate,
+  onBack,
+}: {
+  ride: RideResponse;
+  role: TokenRole;
+  busy: boolean;
+  onRate: (stars: number) => void;
+  onBack: () => void;
+}) {
   const { t } = useI18n();
   const fare = ride.fare;
 
@@ -111,6 +132,24 @@ function Receipt({ ride, onBack }: { ride: RideResponse; onBack: () => void }) {
           </span>
         </div>
       </div>
+
+      {ride.status === "COMPLETED" && (
+        <div className="mt-5 space-y-3">
+          {role === "rider" && ride.ratings?.driverStars != null && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-neutral-500">{t("ratingTheirRating")}</span>
+              <StarRating value={ride.ratings.driverStars} />
+            </div>
+          )}
+          {role === "driver" && ride.ratings?.riderStars != null && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-neutral-500">{t("ratingTheirRating")}</span>
+              <StarRating value={ride.ratings.riderStars} />
+            </div>
+          )}
+          <RateTripCard ride={ride} role={role} busy={busy} onRate={onRate} />
+        </div>
+      )}
 
       {ride.status === "COMPLETED" && (
         <div className="mx-auto mt-6 w-12 h-12 rounded-full bg-brand-soft text-brand-dark grid place-items-center">

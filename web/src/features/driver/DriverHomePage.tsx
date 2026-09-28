@@ -66,6 +66,8 @@ export function DriverHomePage() {
           onEnRoute={s.enRoute}
           onStart={s.startTrip}
           onComplete={s.completeTrip}
+          onRate={s.rateRide}
+          onFinishDone={s.finishDone}
         />
       </Card>
     </div>

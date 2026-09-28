@@ -349,6 +349,12 @@ export function useRiderSession() {
     if (body) resetRider();
   };
 
+  const rateRide = async (stars: number) => {
+    if (!ride) return;
+    const body = await run(() => ridesApi.rate(ride.id, stars, "rider"));
+    if (body) setRide(body);
+  };
+
   const showDrop =
     ui === "ESTIMATE" ||
     ui === "FINDING" ||
@@ -406,6 +412,7 @@ export function useRiderSession() {
     backIdle: resetRider,
     requestRide,
     cancelRide,
+    rateRide,
     bookAgain: resetRider,
   };
 }

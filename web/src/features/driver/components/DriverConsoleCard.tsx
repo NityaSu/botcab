@@ -1,4 +1,5 @@
 import type { OfferMessage, RideResponse } from "@/api/types";
+import { RateTripCard } from "@/components/RateTripCard";
 import { CabIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
@@ -22,6 +23,8 @@ type Props = {
   onEnRoute: () => void;
   onStart: () => void;
   onComplete: () => void;
+  onRate: (stars: number) => void;
+  onFinishDone: () => void;
 };
 
 /** Driver console — online toggle, incoming offer, trip state machine actions. */
@@ -40,6 +43,8 @@ export function DriverConsoleCard({
   onEnRoute,
   onStart,
   onComplete,
+  onRate,
+  onFinishDone,
 }: Props) {
   const { t } = useI18n();
   const offerPct =
@@ -146,11 +151,25 @@ export function DriverConsoleCard({
       )}
 
       {phase === "done" && (
-        <div className="text-center py-6">
+        <div className="text-center py-4">
           <p className="font-bold">{t("driverDone")}</p>
           {ride?.fare && (
-            <p className="text-sm text-neutral-500 mt-1">{formatKhr(ride.fare.totalCents)}</p>
+            <p className="text-sm text-neutral-500 mt-1 mb-4">{formatKhr(ride.fare.totalCents)}</p>
           )}
+          {ride && (
+            <div className="text-left mb-3">
+              <RateTripCard
+                ride={ride}
+                role="driver"
+                busy={busy}
+                onRate={onRate}
+                onSkip={onFinishDone}
+              />
+            </div>
+          )}
+          <Button variant="secondary" size="lg" onClick={onFinishDone}>
+            {t("driverWaiting")}
+          </Button>
         </div>
       )}
 

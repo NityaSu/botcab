@@ -234,16 +234,17 @@ export function useDriverSession() {
     setOnline(true);
   };
 
-  // After done, return to waiting
-  useEffect(() => {
-    if (phase !== "done") return;
-    const id = window.setTimeout(() => {
-      setPhase(online ? "waiting" : "idle");
-      setOffer(null);
-      setRide(null);
-    }, 2500);
-    return () => window.clearTimeout(id);
-  }, [phase, online]);
+  const rateRide = async (stars: number) => {
+    if (!ride) return;
+    const body = await run(() => ridesApi.rate(ride.id, stars, "driver"));
+    if (body) setRide(body);
+  };
+
+  const finishDone = () => {
+    setPhase(online ? "waiting" : "idle");
+    setOffer(null);
+    setRide(null);
+  };
 
   // Sync phase if ride status somehow drifts
   useEffect(() => {
@@ -284,5 +285,7 @@ export function useDriverSession() {
     enRoute,
     startTrip,
     completeTrip,
+    rateRide,
+    finishDone,
   };
 }

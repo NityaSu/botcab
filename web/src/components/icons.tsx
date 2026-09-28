@@ -45,10 +45,17 @@ export function PinIcon(props: IconProps) {
   );
 }
 
-export function StarIcon(props: IconProps) {
+export function StarIcon({ filled = true, size = 14, className }: IconProps & { filled?: boolean }) {
+  if (filled) {
+    return (
+      <svg {...base({ size, className })} fill="currentColor" stroke="none">
+        <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" />
+      </svg>
+    );
+  }
   return (
-    <svg {...base({ size: 14, ...props })} fill="currentColor" stroke="none">
-      <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" />
+    <svg {...base({ size, className })}>
+      <path d="M12 3.2 14.6 8.6l6 .9-4.3 4.2 1 5.8L12 16.6 6.7 19.5l1-5.8L3.4 9.5l6-.9z" />
     </svg>
   );
 }

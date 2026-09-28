@@ -1,4 +1,5 @@
 import type { RideResponse } from "@/api/types";
+import { RateTripCard } from "@/components/RateTripCard";
 import { CheckIcon, StarIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
@@ -13,10 +14,11 @@ type Props = {
   busy: boolean;
   onCancel: () => void;
   onBookAgain: () => void;
+  onRate: (stars: number) => void;
 };
 
 /** FINDING → MATCHED → ENROUTE → TRIP → DONE states. */
-export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain }: Props) {
+export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain, onRate }: Props) {
   const { t } = useI18n();
   const fare = ride?.fare;
 
@@ -66,6 +68,17 @@ export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain
             </span>
           </div>
         </div>
+        {ride && (
+          <div className="mb-4 text-left">
+            <RateTripCard
+              ride={ride}
+              role="rider"
+              busy={busy}
+              onRate={onRate}
+              onSkip={onBookAgain}
+            />
+          </div>
+        )}
         <Button size="lg" onClick={onBookAgain}>
           {t("tripBookAgain")}
         </Button>

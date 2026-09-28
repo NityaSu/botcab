@@ -120,6 +120,16 @@ const km: Record<keyof typeof en, string> = {
   rideMoto: "BotCab ម៉ូតូ",
   rideXl: "BotCab XL",
   rideRecommended: "ណែនាំ",
+  ratingLabel: "ការវាយតម្លៃ",
+  ratingStars: "{n} ផ្កាយ",
+  ratingRateDriver: "អ្នកបើកបររបស់អ្នកយ៉ាងណា?",
+  ratingRateRider: "អ្នកដំណើររបស់អ្នកយ៉ាងណា?",
+  ratingSubmit: "ផ្ញើការវាយតម្លៃ",
+  ratingSubmitting: "កំពុងរក្សាទុក…",
+  ratingSkip: "រំលងសិន",
+  ratingThanks: "អរគុណសម្រាប់ការវាយតម្លៃ",
+  ratingYourRating: "ការវាយតម្លៃរបស់អ្នក",
+  ratingTheirRating: "ការវាយតម្លៃពីភាគីម្ខាងទៀត",
 };
 
 export default km;

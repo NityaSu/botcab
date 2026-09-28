@@ -23,6 +23,8 @@ export const ridesApi = {
     api.post<OfferMessage>(`/api/rides/${rideId}/accept`, undefined, "driver"),
   reject: (rideId: number) =>
     api.post<OfferMessage>(`/api/rides/${rideId}/reject`, undefined, "driver"),
+  rate: (id: number, stars: number, role: "rider" | "driver") =>
+    api.post<RideResponse>(`/api/rides/${id}/rating`, { stars }, role),
 };
 
 export const driversApi = {

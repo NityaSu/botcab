@@ -48,6 +48,22 @@ export function useRideHistory(role: "rider" | "driver", enabled: boolean) {
 
   const clearSelect = () => setSelected(null);
 
+  const rate = async (stars: number) => {
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const detail = await ridesApi.rate(selected.id, stars, role);
+      setSelected(detail);
+      setItems((prev) => prev.map((r) => (r.id === detail.id ? { ...r, ratings: detail.ratings } : r)));
+    } catch (e) {
+      if (e instanceof ApiRequestError) setError(e.message);
+      else setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const reset = () => {
     setSelected(null);
     setError(null);
@@ -60,6 +76,7 @@ export function useRideHistory(role: "rider" | "driver", enabled: boolean) {
     error,
     load,
     select,
+    rate,
     clearSelect,
     reset,
   };

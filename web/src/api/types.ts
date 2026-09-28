@@ -58,4 +58,10 @@ export type RideResponse = {
   version: number;
   offer: OfferMessage | null;
   fare: FareView | null;
+  ratings: RideRatings | null;
+};
+
+export type RideRatings = {
+  riderStars: number | null;
+  driverStars: number | null;
 };
