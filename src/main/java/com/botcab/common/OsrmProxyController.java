@@ -1,35 +1,36 @@
 package com.botcab.common;
 
-import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.util.Locale;
 import java.util.Objects;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * Same-origin stand-in for the Vite {@code /osrm} proxy so production MapLibre routing works.
+ * Same-origin OSRM proxy. Coordinates go in query params so Tomcat does not
+ * reject the {@code ;} that native OSRM paths use ({@code lng,lat;lng,lat}).
  */
 @RestController
 @RequestMapping("/osrm")
 public class OsrmProxyController {
 
-    private static final String UPSTREAM = "https://router.project-osrm.org";
+    static final String UPSTREAM = "https://router.project-osrm.org";
 
     private final RestClient http = RestClient.create();
 
-    @GetMapping("/**")
-    public ResponseEntity<byte[]> proxy(HttpServletRequest request) {
-        String suffix = request.getRequestURI().substring(request.getContextPath().length() + "/osrm".length());
-        if (suffix.isBlank()) {
-            return ResponseEntity.notFound().build();
-        }
-        String query = request.getQueryString();
-        String url = UPSTREAM + suffix + (query == null || query.isBlank() ? "" : "?" + query);
-
+    @GetMapping("/route")
+    public ResponseEntity<byte[]> route(
+            @RequestParam double fromLng,
+            @RequestParam double fromLat,
+            @RequestParam double toLng,
+            @RequestParam double toLat) {
+        URI url = URI.create(upstreamUrl(fromLng, fromLat, toLng, toLat));
         try {
             ResponseEntity<byte[]> upstream = http.get()
                     .uri(url)
@@ -46,5 +47,16 @@ public class OsrmProxyController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(ex.getResponseBodyAsByteArray());
         }
+    }
+
+    static String upstreamUrl(double fromLng, double fromLat, double toLng, double toLat) {
+        return String.format(
+                Locale.US,
+                "%s/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
+                UPSTREAM,
+                fromLng,
+                fromLat,
+                toLng,
+                toLat);
     }
 }

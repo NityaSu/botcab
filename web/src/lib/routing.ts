@@ -8,17 +8,21 @@ export type RouteResult = {
 };
 
 /**
- * Driving route via public OSRM demo (proxied in Vite as /osrm to avoid CORS).
- * Falls back to empty if the service is unavailable.
+ * Driving route via OSRM, proxied through Spring {@code GET /osrm/route}
+ * (query params — Tomcat rejects {@code ;} in the native OSRM path).
  */
 export async function fetchDrivingRoute(
   from: LatLng,
   to: LatLng,
   signal?: AbortSignal,
 ): Promise<RouteResult | null> {
-  const path = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-  const url =
-    `/osrm/route/v1/driving/${path}?overview=full&geometries=geojson`;
+  const params = new URLSearchParams({
+    fromLng: String(from.lng),
+    fromLat: String(from.lat),
+    toLng: String(to.lng),
+    toLat: String(to.lat),
+  });
+  const url = `/osrm/route?${params.toString()}`;
   try {
     const res = await fetch(url, { signal });
     if (!res.ok) return null;
