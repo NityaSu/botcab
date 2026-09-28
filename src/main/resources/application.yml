@@ -25,6 +25,9 @@ spring:
 # Railway/Render set PORT; local Compose uses SERVER_PORT or 8080.
 server:
   port: ${PORT:${SERVER_PORT:8080}}
+  # Trust X-Forwarded-Proto from the platform TLS proxy (Railway/Render) so
+  # same-origin CORS checks see https and pass.
+  forward-headers-strategy: native
 
 botcab:
   jwt:

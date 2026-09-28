@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node -e \"const fs=require('fs');fs.mkdirSync('public/assets',{recursive:true});for(const f of ['maplibre-gl-worker.mjs','maplibre-gl-shared.mjs'])fs.copyFileSync('node_modules/maplibre-gl/dist/'+f,'public/assets/'+f)\"",
     "build": "vite build"
   },
   "dependencies": {
