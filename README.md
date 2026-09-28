@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 16 done: ride history & receipts |
+| **Now** | Phase 17 done: ratings (1–5, one per ride/role) |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -25,7 +25,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 ## Packages
 
 ```
-com.botcab.rider | driver | vehicle | ride | matching | payment | fare | common
+com.botcab.rider | driver | vehicle | ride | matching | payment | fare | rating | common
 ```
 
 Each feature owns its controller, service, and repository when those exist. Features call other **services** only.
