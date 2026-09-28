@@ -8,14 +8,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    /** Comma-separated extra origins; same-origin requests skip CORS entirely. */
-    @Value("${BOTCAB_CORS_ORIGINS:http://localhost:5173}")
+    /** Comma-separated origin patterns; same-origin requests skip CORS entirely. */
+    @Value("${BOTCAB_CORS_ORIGINS:http://localhost:*}")
     private String[] allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(allowedOrigins)
+                .allowedOriginPatterns(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
     }
 }
