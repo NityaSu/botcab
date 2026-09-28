@@ -9,6 +9,9 @@ import com.botcab.fare.FareView;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
+import com.botcab.rating.CreateRatingRequest;
+import com.botcab.rating.RatingService;
+import com.botcab.rating.RideRatings;
 import com.botcab.rider.RiderService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +42,7 @@ public class RideService {
     private final DriverService drivers;
     private final OfferService offers;
     private final FareService fares;
+    private final RatingService ratings;
     private final TransactionTemplate tx;
 
     public RideService(
@@ -47,12 +51,14 @@ public class RideService {
             DriverService drivers,
             OfferService offers,
             FareService fares,
+            RatingService ratings,
             PlatformTransactionManager transactionManager) {
         this.rides = rides;
         this.riders = riders;
         this.drivers = drivers;
         this.offers = offers;
         this.fares = fares;
+        this.ratings = ratings;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -91,8 +97,7 @@ public class RideService {
     public RideResponse get(long rideId, AuthPrincipal auth) {
         Ride ride = require(rideId);
         assertCanView(ride, auth);
-        FareView fare = fares.findByRideId(rideId).map(FareView::from).orElse(null);
-        return RideResponse.from(ride, null, fare);
+        return toView(ride, null);
     }
 
     /**
@@ -107,12 +112,22 @@ public class RideService {
             case DRIVER -> rides.findByDriverIdAndStatusInOrderByEndedAtDesc(
                     auth.id(), terminal, PageRequest.of(0, pageSize));
         };
-        return rows.stream().map(this::toHistoryItem).toList();
+        return rows.stream().map(ride -> toView(ride, null)).toList();
     }
 
-    private RideResponse toHistoryItem(Ride ride) {
+    /** After COMPLETED: this role rates the other party. One rating per ride/role. */
+    @Transactional
+    public RideResponse rate(long rideId, AuthPrincipal auth, CreateRatingRequest body) {
+        Ride ride = require(rideId);
+        assertCanView(ride, auth);
+        ratings.submit(ride, auth.role(), body.stars());
+        return toView(ride, null);
+    }
+
+    private RideResponse toView(Ride ride, OfferMessage offer) {
         FareView fare = fares.findByRideId(ride.getId()).map(FareView::from).orElse(null);
-        return RideResponse.from(ride, null, fare);
+        RideRatings snapshot = ratings.snapshot(ride.getId());
+        return RideResponse.from(ride, offer, fare, snapshot);
     }
 
     private void assertCanView(Ride ride, AuthPrincipal auth) {
@@ -184,7 +199,7 @@ public class RideService {
         if (driverId != null) {
             drivers.releaseOffer(driverId);
         }
-        return RideResponse.from(ride, null, fare);
+        return RideResponse.from(ride, null, fare, ratings.snapshot(ride.getId()));
     }
 
     @Transactional

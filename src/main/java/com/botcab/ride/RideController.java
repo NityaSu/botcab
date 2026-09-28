@@ -3,6 +3,7 @@ package com.botcab.ride;
 import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.Role;
 import com.botcab.matching.OfferMessage;
+import com.botcab.rating.CreateRatingRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,5 +81,10 @@ public class RideController {
     public RideResponse complete(@PathVariable("id") long id) {
         AuthPrincipal.requireDriverId();
         return rides.complete(id);
+    }
+
+    @PostMapping("/{id}/rating")
+    public RideResponse rate(@PathVariable("id") long id, @Valid @RequestBody CreateRatingRequest body) {
+        return rides.rate(id, AuthPrincipal.require(), body);
     }
 }

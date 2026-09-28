@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/en-route").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/start").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/complete").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/rides/*/rating").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/offers/*/accept").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.POST, "/api/offers/*/reject").hasRole("DRIVER")
                         .requestMatchers("/api/drivers/me/**").hasRole("DRIVER")

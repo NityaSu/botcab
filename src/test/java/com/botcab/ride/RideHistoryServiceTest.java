@@ -6,6 +6,9 @@ import com.botcab.driver.DriverService;
 import com.botcab.fare.Fare;
 import com.botcab.fare.FareService;
 import com.botcab.matching.OfferService;
+import com.botcab.rating.CreateRatingRequest;
+import com.botcab.rating.RatingService;
+import com.botcab.rating.RideRatings;
 import com.botcab.rider.RiderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +29,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +56,9 @@ class RideHistoryServiceTest {
     FareService fares;
 
     @Mock
+    RatingService ratings;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -57,7 +66,8 @@ class RideHistoryServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(txManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
-        service = new RideService(rides, riders, drivers, offers, fares, txManager);
+        lenient().when(ratings.snapshot(anyLong())).thenReturn(RideRatings.none());
+        service = new RideService(rides, riders, drivers, offers, fares, ratings, txManager);
     }
 
     @Test
@@ -109,6 +119,30 @@ class RideHistoryServiceTest {
 
         RideResponse body = service.get(10L, new AuthPrincipal(2L, "+8552", "Drv", Role.DRIVER));
         assertEquals(10L, body.id());
+    }
+
+    @Test
+    void rateSubmitsForRiderOnCompletedRide() {
+        Ride ride = completedRide(10L, 1L, 2L);
+        when(rides.findById(10L)).thenReturn(Optional.of(ride));
+        when(fares.findByRideId(10L)).thenReturn(Optional.empty());
+        AuthPrincipal rider = new AuthPrincipal(1L, "+8551", "Rider", Role.RIDER);
+
+        RideResponse body = service.rate(10L, rider, new CreateRatingRequest(5));
+
+        assertEquals(10L, body.id());
+        verify(ratings).submit(ride, Role.RIDER, 5);
+    }
+
+    @Test
+    void rateForbidsOutsider() {
+        Ride ride = completedRide(10L, 1L, 2L);
+        when(rides.findById(10L)).thenReturn(Optional.of(ride));
+
+        assertThrows(ResponseStatusException.class, () ->
+                service.rate(10L, new AuthPrincipal(99L, "+8559", "Other", Role.RIDER),
+                        new CreateRatingRequest(4)));
+        verify(ratings, never()).submit(any(), any(), anyInt());
     }
 
     private static Ride completedRide(long id, long riderId, long driverId) {

@@ -4,6 +4,7 @@ import com.botcab.fare.FareAlreadyExistsException;
 import com.botcab.fare.FareNotFoundException;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferNotFoundException;
+import com.botcab.rating.RatingAlreadyExistsException;
 import com.botcab.ride.IllegalRideTransitionException;
 import com.botcab.ride.RideCancelNotAllowedException;
 import com.botcab.ride.RideNotFoundException;
@@ -55,6 +56,7 @@ public class RestExceptionHandler {
             IllegalRideTransitionException.class,
             RideCancelNotAllowedException.class,
             FareAlreadyExistsException.class,
+            RatingAlreadyExistsException.class,
             OptimisticLockingFailureException.class
     })
     public ResponseEntity<ApiError> conflict(RuntimeException ex) {

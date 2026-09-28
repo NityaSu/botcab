@@ -2,6 +2,7 @@ package com.botcab.ride;
 
 import com.botcab.fare.FareView;
 import com.botcab.matching.OfferMessage;
+import com.botcab.rating.RideRatings;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,17 +22,22 @@ public record RideResponse(
         Instant endedAt,
         long version,
         OfferMessage offer,
-        FareView fare
+        FareView fare,
+        RideRatings ratings
 ) {
     public static RideResponse from(Ride ride) {
-        return from(ride, null, null);
+        return from(ride, null, null, null);
     }
 
     public static RideResponse from(Ride ride, OfferMessage offer) {
-        return from(ride, offer, null);
+        return from(ride, offer, null, null);
     }
 
     public static RideResponse from(Ride ride, OfferMessage offer, FareView fare) {
+        return from(ride, offer, fare, null);
+    }
+
+    public static RideResponse from(Ride ride, OfferMessage offer, FareView fare, RideRatings ratings) {
         return new RideResponse(
                 ride.getId(),
                 ride.getRiderId(),
@@ -47,6 +53,7 @@ public record RideResponse(
                 ride.getEndedAt(),
                 ride.getVersion(),
                 offer,
-                fare);
+                fare,
+                ratings);
     }
 }

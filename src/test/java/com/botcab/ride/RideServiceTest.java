@@ -6,6 +6,8 @@ import com.botcab.fare.FareService;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
 import com.botcab.matching.OfferStatus;
+import com.botcab.rating.RatingService;
+import com.botcab.rating.RideRatings;
 import com.botcab.rider.RiderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,9 @@ class RideServiceTest {
     FareService fares;
 
     @Mock
+    RatingService ratings;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -56,7 +61,7 @@ class RideServiceTest {
         org.mockito.Mockito.lenient()
                 .when(txManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus());
-        service = new RideService(rides, riders, drivers, offers, fares, txManager);
+        service = new RideService(rides, riders, drivers, offers, fares, ratings, txManager);
     }
 
     @Test
@@ -130,6 +135,7 @@ class RideServiceTest {
         when(fares.createForRide(eq(11L), anyDouble(), anyDouble()))
                 .thenReturn(new FareQuote(1.2, 1.5, 2.0, 4000, 2000, 9600, "KHR"));
         when(drivers.demandRatio()).thenReturn(2.0);
+        when(ratings.snapshot(11L)).thenReturn(RideRatings.none());
 
         RideResponse response = service.complete(11L);
 
