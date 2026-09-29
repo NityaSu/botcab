@@ -130,6 +130,10 @@ const km: Record<keyof typeof en, string> = {
   ratingThanks: "អរគុណសម្រាប់ការវាយតម្លៃ",
   ratingYourRating: "ការវាយតម្លៃរបស់អ្នក",
   ratingTheirRating: "ការវាយតម្លៃពីភាគីម្ខាងទៀត",
+  paymentMethod: "ការទូទាត់",
+  paymentCaptured: "សាច់ប្រាក់ · បានទទួល",
+  paymentFailed: "សាច់ប្រាក់ · បរាជ័យ",
+  paymentPending: "សាច់ប្រាក់ · រង់ចាំ",
 };
 
 export default km;

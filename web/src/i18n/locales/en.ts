@@ -127,4 +127,8 @@ export default {
   ratingThanks: "Thanks for rating",
   ratingYourRating: "Your rating",
   ratingTheirRating: "Their rating",
+  paymentMethod: "Payment",
+  paymentCaptured: "Cash · captured",
+  paymentFailed: "Cash · failed",
+  paymentPending: "Cash · pending",
 } as const;
