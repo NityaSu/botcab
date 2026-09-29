@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 17 done: ratings (1–5, one per ride/role) |
+| **Now** | Phase 18 done: mock cash capture on complete |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
