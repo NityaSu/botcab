@@ -59,6 +59,14 @@ export type RideResponse = {
   offer: OfferMessage | null;
   fare: FareView | null;
   ratings: RideRatings | null;
+  payment: PaymentView | null;
+};
+
+export type PaymentStatus = "PENDING" | "CAPTURED" | "FAILED";
+
+export type PaymentView = {
+  amountCents: number;
+  status: PaymentStatus;
 };
 
 export type RideRatings = {

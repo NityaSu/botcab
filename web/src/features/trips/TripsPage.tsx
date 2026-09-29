@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import type { RideResponse } from "@/api/types";
 import type { TokenRole } from "@/api/client";
+import { PaymentLine } from "@/components/PaymentLine";
 import { RateTripCard } from "@/components/RateTripCard";
 import { ArrowLeftIcon, CheckIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -131,6 +132,7 @@ function Receipt({
             <span className="text-xs text-neutral-400">· {fare?.currency ?? "KHR"}</span>
           </span>
         </div>
+        {ride.status === "COMPLETED" && <PaymentLine payment={ride.payment} />}
       </div>
 
       {ride.status === "COMPLETED" && (

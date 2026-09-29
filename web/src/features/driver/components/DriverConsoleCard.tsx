@@ -1,4 +1,5 @@
 import type { OfferMessage, RideResponse } from "@/api/types";
+import { PaymentLine } from "@/components/PaymentLine";
 import { RateTripCard } from "@/components/RateTripCard";
 import { CabIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -154,7 +155,12 @@ export function DriverConsoleCard({
         <div className="text-center py-4">
           <p className="font-bold">{t("driverDone")}</p>
           {ride?.fare && (
-            <p className="text-sm text-neutral-500 mt-1 mb-4">{formatKhr(ride.fare.totalCents)}</p>
+            <p className="text-sm text-neutral-500 mt-1 mb-2">{formatKhr(ride.fare.totalCents)}</p>
+          )}
+          {ride?.payment && (
+            <div className="rounded-2xl border border-neutral-200 mb-3">
+              <PaymentLine payment={ride.payment} />
+            </div>
           )}
           {ride && (
             <div className="text-left mb-3">

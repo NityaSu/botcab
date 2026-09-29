@@ -1,4 +1,5 @@
 import type { RideResponse } from "@/api/types";
+import { PaymentLine } from "@/components/PaymentLine";
 import { RateTripCard } from "@/components/RateTripCard";
 import { CheckIcon, StarIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -67,6 +68,7 @@ export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain
               <span className="text-xs text-neutral-400">· {fare?.currency ?? "KHR"}</span>
             </span>
           </div>
+          <PaymentLine payment={ride?.payment} />
         </div>
         {ride && (
           <div className="mb-4 text-left">
