@@ -9,6 +9,8 @@ import com.botcab.fare.FareView;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
+import com.botcab.payment.PaymentService;
+import com.botcab.payment.PaymentView;
 import com.botcab.rating.CreateRatingRequest;
 import com.botcab.rating.RatingService;
 import com.botcab.rating.RideRatings;
@@ -43,6 +45,7 @@ public class RideService {
     private final OfferService offers;
     private final FareService fares;
     private final RatingService ratings;
+    private final PaymentService payments;
     private final TransactionTemplate tx;
 
     public RideService(
@@ -52,6 +55,7 @@ public class RideService {
             OfferService offers,
             FareService fares,
             RatingService ratings,
+            PaymentService payments,
             PlatformTransactionManager transactionManager) {
         this.rides = rides;
         this.riders = riders;
@@ -59,6 +63,7 @@ public class RideService {
         this.offers = offers;
         this.fares = fares;
         this.ratings = ratings;
+        this.payments = payments;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -127,7 +132,8 @@ public class RideService {
     private RideResponse toView(Ride ride, OfferMessage offer) {
         FareView fare = fares.findByRideId(ride.getId()).map(FareView::from).orElse(null);
         RideRatings snapshot = ratings.snapshot(ride.getId());
-        return RideResponse.from(ride, offer, fare, snapshot);
+        PaymentView payment = payments.findByRideId(ride.getId()).orElse(null);
+        return RideResponse.from(ride, offer, fare, snapshot, payment);
     }
 
     private void assertCanView(Ride ride, AuthPrincipal auth) {
@@ -177,8 +183,7 @@ public class RideService {
     }
 
     /**
-     * {@code IN_PROGRESS → COMPLETED}, persist fare from haversine pickup→dropoff
-     * with live demand surge, then free driver.
+     * {@code IN_PROGRESS → COMPLETED}, persist fare, mock-capture cash, then free driver.
      */
     @Transactional
     public RideResponse complete(long rideId) {
@@ -194,12 +199,13 @@ public class RideService {
         // Driver is still BUSY here, so they count toward demand before release.
         double demandRatio = drivers.demandRatio();
         FareView fare = FareView.from(fares.createForRide(ride.getId(), distanceKm, demandRatio));
+        PaymentView payment = payments.captureForRide(ride.getId(), fare.totalCents());
 
         Long driverId = ride.getDriverId();
         if (driverId != null) {
             drivers.releaseOffer(driverId);
         }
-        return RideResponse.from(ride, null, fare, ratings.snapshot(ride.getId()));
+        return RideResponse.from(ride, null, fare, ratings.snapshot(ride.getId()), payment);
     }
 
     @Transactional

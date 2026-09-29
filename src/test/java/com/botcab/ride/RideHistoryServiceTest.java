@@ -6,6 +6,7 @@ import com.botcab.driver.DriverService;
 import com.botcab.fare.Fare;
 import com.botcab.fare.FareService;
 import com.botcab.matching.OfferService;
+import com.botcab.payment.PaymentService;
 import com.botcab.rating.CreateRatingRequest;
 import com.botcab.rating.RatingService;
 import com.botcab.rating.RideRatings;
@@ -59,6 +60,9 @@ class RideHistoryServiceTest {
     RatingService ratings;
 
     @Mock
+    PaymentService payments;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -67,7 +71,8 @@ class RideHistoryServiceTest {
     void setUp() {
         lenient().when(txManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         lenient().when(ratings.snapshot(anyLong())).thenReturn(RideRatings.none());
-        service = new RideService(rides, riders, drivers, offers, fares, ratings, txManager);
+        lenient().when(payments.findByRideId(anyLong())).thenReturn(Optional.empty());
+        service = new RideService(rides, riders, drivers, offers, fares, ratings, payments, txManager);
     }
 
     @Test

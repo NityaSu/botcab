@@ -6,6 +6,9 @@ import com.botcab.fare.FareService;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
 import com.botcab.matching.OfferStatus;
+import com.botcab.payment.PaymentService;
+import com.botcab.payment.PaymentStatus;
+import com.botcab.payment.PaymentView;
 import com.botcab.rating.RatingService;
 import com.botcab.rating.RideRatings;
 import com.botcab.rider.RiderService;
@@ -52,6 +55,9 @@ class RideServiceTest {
     RatingService ratings;
 
     @Mock
+    PaymentService payments;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -61,7 +67,7 @@ class RideServiceTest {
         org.mockito.Mockito.lenient()
                 .when(txManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus());
-        service = new RideService(rides, riders, drivers, offers, fares, ratings, txManager);
+        service = new RideService(rides, riders, drivers, offers, fares, ratings, payments, txManager);
     }
 
     @Test
@@ -136,6 +142,8 @@ class RideServiceTest {
                 .thenReturn(new FareQuote(1.2, 1.5, 2.0, 4000, 2000, 9600, "KHR"));
         when(drivers.demandRatio()).thenReturn(2.0);
         when(ratings.snapshot(11L)).thenReturn(RideRatings.none());
+        when(payments.captureForRide(11L, 9600L))
+                .thenReturn(new PaymentView(9600L, PaymentStatus.CAPTURED));
 
         RideResponse response = service.complete(11L);
 
@@ -144,7 +152,9 @@ class RideServiceTest {
         assertEquals(9600L, response.fare().totalCents());
         assertEquals(1.5, response.fare().surgeMultiplier());
         assertEquals(2.0, response.fare().demandRatio());
+        assertEquals(PaymentStatus.CAPTURED, response.payment().status());
         verify(fares).createForRide(eq(11L), anyDouble(), eq(2.0));
+        verify(payments).captureForRide(11L, 9600L);
         verify(drivers).releaseOffer(3L);
     }
 
