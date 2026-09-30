@@ -24,6 +24,7 @@ type Props = {
   onEnRoute: () => void;
   onStart: () => void;
   onComplete: () => void;
+  onCancel: () => void;
   onRate: (stars: number) => void;
   onFinishDone: () => void;
 };
@@ -44,6 +45,7 @@ export function DriverConsoleCard({
   onEnRoute,
   onStart,
   onComplete,
+  onCancel,
   onRate,
   onFinishDone,
 }: Props) {
@@ -128,6 +130,9 @@ export function DriverConsoleCard({
           <Button size="lg" disabled={busy} onClick={onEnRoute}>
             {t("driverOnTheWay")}
           </Button>
+          <Button variant="secondary" className="mt-2" disabled={busy} onClick={onCancel}>
+            {t("tripCancel")}
+          </Button>
         </div>
       )}
 
@@ -137,6 +142,9 @@ export function DriverConsoleCard({
           <p className="text-sm text-neutral-500 mb-4">Ride #{ride?.id}</p>
           <Button size="lg" disabled={busy} onClick={onStart}>
             {t("driverArrivedStart")}
+          </Button>
+          <Button variant="secondary" className="mt-2" disabled={busy} onClick={onCancel}>
+            {t("tripCancel")}
           </Button>
         </div>
       )}
@@ -157,9 +165,15 @@ export function DriverConsoleCard({
           {ride?.fare && (
             <p className="text-sm text-neutral-500 mt-1 mb-2">{formatKhr(ride.fare.totalCents)}</p>
           )}
-          {ride?.payment && (
-            <div className="rounded-2xl border border-neutral-200 mb-3">
-              <PaymentLine payment={ride.payment} />
+          {(ride?.payment || ride?.earning) && (
+            <div className="rounded-2xl border border-neutral-200 mb-3 divide-y divide-neutral-100">
+              <PaymentLine payment={ride?.payment} />
+              {ride?.earning && (
+                <div className="flex justify-between px-4 py-3 text-sm">
+                  <span className="text-neutral-500">{t("earningsTripShare")}</span>
+                  <span className="font-semibold">{formatKhr(ride.earning.amountCents)}</span>
+                </div>
+              )}
             </div>
           )}
           {ride && (

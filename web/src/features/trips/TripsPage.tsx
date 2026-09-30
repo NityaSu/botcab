@@ -71,7 +71,11 @@ export function TripsPage() {
                 </span>
               </span>
               <span className="font-bold shrink-0">
-                {ride.status === "COMPLETED" ? formatKhr(ride.fare?.totalCents) : "—"}
+                {ride.status === "COMPLETED"
+                  ? formatKhr(ride.fare?.totalCents)
+                  : ride.cancellation && ride.cancellation.feeCents > 0
+                    ? formatKhr(ride.cancellation.feeCents)
+                    : "—"}
               </span>
               <ChevronRightIcon size={16} className="text-neutral-300 shrink-0" />
             </button>
@@ -128,11 +132,38 @@ function Receipt({
         <div className="flex justify-between px-4 py-3">
           <span className="text-neutral-500">{t("tripTotal")}</span>
           <span className="font-extrabold text-lg">
-            {ride.status === "COMPLETED" ? formatKhr(fare?.totalCents) : "—"}{" "}
+            {ride.status === "COMPLETED"
+              ? formatKhr(fare?.totalCents)
+              : ride.cancellation && ride.cancellation.feeCents > 0
+                ? formatKhr(ride.cancellation.feeCents)
+                : "—"}{" "}
             <span className="text-xs text-neutral-400">· {fare?.currency ?? "KHR"}</span>
           </span>
         </div>
         {ride.status === "COMPLETED" && <PaymentLine payment={ride.payment} />}
+        {ride.status === "CANCELLED" && ride.cancellation && (
+          <>
+            <Row
+              label={t("cancelBy")}
+              value={
+                ride.cancellation.cancelledBy === "RIDER"
+                  ? t("authAsRider")
+                  : ride.cancellation.cancelledBy === "DRIVER"
+                    ? t("authAsDriver")
+                    : t("cancelBySystem")
+              }
+            />
+            <Row
+              label={t("cancelFee")}
+              value={
+                ride.cancellation.feeCents > 0
+                  ? formatKhr(ride.cancellation.feeCents)
+                  : t("cancelFeeFree")
+              }
+            />
+            {ride.payment && <PaymentLine payment={ride.payment} />}
+          </>
+        )}
       </div>
 
       {ride.status === "COMPLETED" && (

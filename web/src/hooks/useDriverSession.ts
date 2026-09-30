@@ -234,6 +234,15 @@ export function useDriverSession() {
     setOnline(true);
   };
 
+  const cancelRide = async () => {
+    if (!ride) return;
+    const body = await run(() => ridesApi.cancel(ride.id, "driver"));
+    if (!body) return;
+    setRide(null);
+    setOffer(null);
+    setPhase(online ? "waiting" : "idle");
+  };
+
   const rateRide = async (stars: number) => {
     if (!ride) return;
     const body = await run(() => ridesApi.rate(ride.id, stars, "driver"));
@@ -285,6 +294,7 @@ export function useDriverSession() {
     enRoute,
     startTrip,
     completeTrip,
+    cancelRide,
     rateRide,
     finishDone,
   };

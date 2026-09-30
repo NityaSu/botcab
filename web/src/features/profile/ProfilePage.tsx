@@ -46,6 +46,13 @@ export function ProfilePage() {
           label={t("profileMyTrips")}
           onClick={() => navigate("/trips")}
         />
+        {current?.role === "driver" && (
+          <ProfileRow
+            icon={<WalletIcon size={20} />}
+            label={t("earningsTitle")}
+            onClick={() => navigate("/earnings")}
+          />
+        )}
         <div className="flex items-center gap-3 px-5 py-4">
           <span className="text-neutral-500">
             <WalletIcon size={20} />

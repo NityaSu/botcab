@@ -14,12 +14,22 @@ type Props = {
   progress: number;
   busy: boolean;
   onCancel: () => void;
+  cancelFeeCents?: number | null;
   onBookAgain: () => void;
   onRate: (stars: number) => void;
 };
 
 /** FINDING → MATCHED → ENROUTE → TRIP → DONE states. */
-export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain, onRate }: Props) {
+export function TripStatusCard({
+  ui,
+  ride,
+  progress,
+  busy,
+  onCancel,
+  cancelFeeCents,
+  onBookAgain,
+  onRate,
+}: Props) {
   const { t } = useI18n();
   const fare = ride?.fare;
 
@@ -41,7 +51,9 @@ export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain
           )}
         </p>
         <Button variant="secondary" disabled={busy} onClick={onCancel}>
-          {t("tripCancel")}
+          {cancelFeeCents && cancelFeeCents > 0
+            ? `${t("tripCancel")} · ${formatKhr(cancelFeeCents)}`
+            : t("tripCancel")}
         </Button>
       </div>
     );
@@ -112,9 +124,11 @@ export function TripStatusCard({ ui, ride, progress, busy, onCancel, onBookAgain
           style={{ width: `${Math.max(12, progress)}%` }}
         />
       </div>
-      {ui === "MATCHED" && (
+      {(ui === "MATCHED" || ui === "ENROUTE") && (
         <Button variant="secondary" disabled={busy} onClick={onCancel}>
-          {t("tripCancel")}
+          {cancelFeeCents && cancelFeeCents > 0
+            ? `${t("tripCancel")} · ${formatKhr(cancelFeeCents)}`
+            : t("tripCancel")}
         </Button>
       )}
     </div>

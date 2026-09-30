@@ -3,6 +3,7 @@ import { ConsoleLayout } from "./components/layout/ConsoleLayout";
 import { SiteLayout } from "./components/layout/SiteLayout";
 import { AuthPage } from "./features/auth/AuthPage";
 import { DriverHomePage } from "./features/driver/DriverHomePage";
+import { EarningsPage } from "./features/driver/EarningsPage";
 import { ProfilePage } from "./features/profile/ProfilePage";
 import { SettingsPage } from "./features/profile/SettingsPage";
 import { RiderHomePage } from "./features/rider/RiderHomePage";
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/trips" element={<TripsPage />} />
+            <Route path="/earnings" element={<EarningsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

@@ -42,6 +42,35 @@ export type FareView = {
   demandRatio: number | null;
 };
 
+export type CancellationView = {
+  cancelledBy: "RIDER" | "DRIVER" | "SYSTEM";
+  feeCents: number;
+  policyCode: string | null;
+};
+
+export type CancellationPreview = {
+  allowed: boolean;
+  feeCents: number;
+  policyCode: string;
+};
+
+export type EarningKind = "TRIP" | "CANCEL_FEE";
+
+export type DriverEarningView = {
+  rideId: number;
+  amountCents: number;
+  kind: EarningKind;
+  createdAt: string;
+};
+
+export type DriverEarningsSummary = {
+  totalCents: number;
+  currency: string;
+  tripCount: number;
+  cancelFeeCount: number;
+  recent: DriverEarningView[];
+};
+
 export type RideResponse = {
   id: number;
   riderId: number;
@@ -60,6 +89,8 @@ export type RideResponse = {
   fare: FareView | null;
   ratings: RideRatings | null;
   payment: PaymentView | null;
+  cancellation: CancellationView | null;
+  earning: DriverEarningView | null;
 };
 
 export type PaymentStatus = "PENDING" | "CAPTURED" | "FAILED";

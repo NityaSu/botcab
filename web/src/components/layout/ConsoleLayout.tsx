@@ -10,6 +10,7 @@ import {
   PackageIcon,
   SettingsIcon,
   SteeringIcon,
+  WalletIcon,
 } from "../icons";
 import { Sheet } from "../ui/Sheet";
 import { BottomNav } from "./BottomNav";
@@ -41,6 +42,7 @@ export function ConsoleLayout() {
     ? [
         { id: "drive", labelKey: "navDrive", icon: <SteeringIcon size={22} />, active: true },
         { id: "trips", labelKey: "navTrips", icon: <HistoryIcon size={22} />, to: "/trips" },
+        { id: "earnings", labelKey: "earningsTitle", icon: <WalletIcon size={22} />, to: "/earnings" },
       ]
     : [
         { id: "ride", labelKey: "serviceRide", icon: <CabIcon size={22} />, active: true },

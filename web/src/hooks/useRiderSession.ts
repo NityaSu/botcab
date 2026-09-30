@@ -67,6 +67,7 @@ export function useRiderSession() {
   const [carVisible, setCarVisible] = useState(false);
   const [progress, setProgress] = useState(15);
   const [routeKm, setRouteKm] = useState<number | null>(null);
+  const [cancelFeeCents, setCancelFeeCents] = useState<number | null>(null);
 
   const pollRef = useRef<number | null>(null);
   const carTimerRef = useRef<number | null>(null);
@@ -201,6 +202,7 @@ export function useRiderSession() {
     setCarT(0.12);
     setError(null);
     setRouteKm(null);
+    setCancelFeeCents(null);
   };
 
   useEffect(() => {
@@ -249,6 +251,25 @@ export function useRiderSession() {
     return () => {
       cancelled = true;
       clearPoll();
+    };
+  }, [ride?.id, ui]);
+
+  useEffect(() => {
+    const canPreview = ui === "FINDING" || ui === "MATCHED" || ui === "ENROUTE";
+    if (!ride || !canPreview) {
+      return;
+    }
+    let cancelled = false;
+    ridesApi
+      .cancelPreview(ride.id, "rider")
+      .then((preview) => {
+        if (!cancelled && preview.allowed) setCancelFeeCents(preview.feeCents);
+      })
+      .catch(() => {
+        if (!cancelled) setCancelFeeCents(null);
+      });
+    return () => {
+      cancelled = true;
     };
   }, [ride?.id, ui]);
 
@@ -412,6 +433,7 @@ export function useRiderSession() {
     backIdle: resetRider,
     requestRide,
     cancelRide,
+    cancelFeeCents,
     rateRide,
     bookAgain: resetRider,
   };

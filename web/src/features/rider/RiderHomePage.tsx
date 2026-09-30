@@ -92,6 +92,7 @@ export function RiderHomePage() {
             progress={s.progress}
             busy={s.busy}
             onCancel={s.cancelRide}
+            cancelFeeCents={s.cancelFeeCents}
             onBookAgain={s.bookAgain}
             onRate={s.rateRide}
           />

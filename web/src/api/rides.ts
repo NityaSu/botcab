@@ -1,5 +1,10 @@
 import { api } from "./client";
-import type { OfferMessage, RideResponse } from "./types";
+import type {
+  CancellationPreview,
+  DriverEarningsSummary,
+  OfferMessage,
+  RideResponse,
+} from "./types";
 
 export type BookRideBody = {
   pickupLat: number;
@@ -16,6 +21,8 @@ export const ridesApi = {
     api.get<RideResponse[]>(`/api/rides/history?limit=${limit}`, role),
   cancel: (id: number, role: "rider" | "driver") =>
     api.post<RideResponse>(`/api/rides/${id}/cancel`, undefined, role),
+  cancelPreview: (id: number, role: "rider" | "driver") =>
+    api.get<CancellationPreview>(`/api/rides/${id}/cancel-preview`, role),
   enRoute: (id: number) => api.post<RideResponse>(`/api/rides/${id}/en-route`, undefined, "driver"),
   start: (id: number) => api.post<RideResponse>(`/api/rides/${id}/start`, undefined, "driver"),
   complete: (id: number) => api.post<RideResponse>(`/api/rides/${id}/complete`, undefined, "driver"),
@@ -32,4 +39,5 @@ export const driversApi = {
   offline: () => api.post<void>("/api/drivers/me/offline", undefined, "driver"),
   ping: (lat: number, lng: number) =>
     api.post<void>("/api/drivers/me/location", { lat, lng }, "driver"),
+  earnings: () => api.get<DriverEarningsSummary>("/api/drivers/me/earnings", "driver"),
 };
