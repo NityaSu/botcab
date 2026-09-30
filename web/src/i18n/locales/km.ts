@@ -134,6 +134,18 @@ const km: Record<keyof typeof en, string> = {
   paymentCaptured: "សាច់ប្រាក់ · បានទទួល",
   paymentFailed: "សាច់ប្រាក់ · បរាជ័យ",
   paymentPending: "សាច់ប្រាក់ · រង់ចាំ",
+  cancelBy: "បោះបង់ដោយ",
+  cancelBySystem: "ប្រព័ន្ធ",
+  cancelFee: "ថ្លៃបោះបង់",
+  cancelFeeFree: "ឥតគិតថ្លៃ",
+  earningsTitle: "ប្រាក់ចំណូល",
+  earningsTotal: "សរុបដែលរកបាន",
+  earningsTrips: "ដំណើរបានបញ្ចប់",
+  earningsCancelFees: "ថ្លៃបោះបង់",
+  earningsEmpty: "មិនទាន់មានប្រាក់ចំណូលទេ។ បញ្ចប់ដំណើរមួយដើម្បីមើលបញ្ជី។",
+  earningsKindTrip: "ចំណែកដំណើរ",
+  earningsKindCancel: "ថ្លៃបោះបង់",
+  earningsTripShare: "ចំណែករបស់អ្នក (80%)",
 };
 
 export default km;
