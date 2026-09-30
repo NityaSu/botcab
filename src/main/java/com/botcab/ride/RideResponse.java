@@ -1,5 +1,6 @@
 package com.botcab.ride;
 
+import com.botcab.earning.DriverEarningView;
 import com.botcab.fare.FareView;
 import com.botcab.matching.OfferMessage;
 import com.botcab.payment.PaymentView;
@@ -25,26 +26,37 @@ public record RideResponse(
         OfferMessage offer,
         FareView fare,
         RideRatings ratings,
-        PaymentView payment
+        PaymentView payment,
+        CancellationView cancellation,
+        DriverEarningView earning
 ) {
     public static RideResponse from(Ride ride) {
-        return from(ride, null, null, null, null);
+        return from(ride, null, null, null, null, null);
     }
 
     public static RideResponse from(Ride ride, OfferMessage offer) {
-        return from(ride, offer, null, null, null);
-    }
-
-    public static RideResponse from(Ride ride, OfferMessage offer, FareView fare) {
-        return from(ride, offer, fare, null, null);
-    }
-
-    public static RideResponse from(Ride ride, OfferMessage offer, FareView fare, RideRatings ratings) {
-        return from(ride, offer, fare, ratings, null);
+        return from(ride, offer, null, null, null, null);
     }
 
     public static RideResponse from(
             Ride ride, OfferMessage offer, FareView fare, RideRatings ratings, PaymentView payment) {
+        return from(ride, offer, fare, ratings, payment, null);
+    }
+
+    public static RideResponse from(
+            Ride ride,
+            OfferMessage offer,
+            FareView fare,
+            RideRatings ratings,
+            PaymentView payment,
+            DriverEarningView earning) {
+        CancellationView cancellation = null;
+        if (ride.getStatus() == RideStatus.CANCELLED && ride.getCancelledBy() != null) {
+            cancellation = new CancellationView(
+                    ride.getCancelledBy(),
+                    ride.getCancelFeeCents(),
+                    ride.getCancelPolicy());
+        }
         return new RideResponse(
                 ride.getId(),
                 ride.getRiderId(),
@@ -62,6 +74,8 @@ public record RideResponse(
                 offer,
                 fare,
                 ratings,
-                payment);
+                payment,
+                cancellation,
+                earning);
     }
 }

@@ -61,6 +61,16 @@ public class Ride {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancelled_by", length = 30)
+    private CancelledBy cancelledBy;
+
+    @Column(name = "cancel_fee_cents", nullable = false)
+    private long cancelFeeCents;
+
+    @Column(name = "cancel_policy", length = 30)
+    private String cancelPolicy;
+
     /** Optimistic lock — concurrent accept/cancel must not silently overwrite. */
     @Version
     @Column(name = "version", nullable = false)
@@ -98,11 +108,14 @@ public class Ride {
         this.matchedAt = matchedAt;
     }
 
-    /** Cancel per {@link RideCancellationRules}; clears assignment timestamps. */
-    public void cancel(CancelledBy by, Instant endedAt) {
+    /** Cancel per {@link RideCancellationRules}; records who and the policy fee. */
+    public void cancel(CancelledBy by, Instant endedAt, long cancelFeeCents, String cancelPolicy) {
         RideCancellationRules.requireAllowed(this.status, by);
         transitionTo(RideStatus.CANCELLED);
         this.endedAt = endedAt;
+        this.cancelledBy = by;
+        this.cancelFeeCents = cancelFeeCents;
+        this.cancelPolicy = cancelPolicy;
     }
 
     /** {@code MATCHED → DRIVER_EN_ROUTE}. */
@@ -188,5 +201,17 @@ public class Ride {
 
     public void setEndedAt(Instant endedAt) {
         this.endedAt = endedAt;
+    }
+
+    public CancelledBy getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public long getCancelFeeCents() {
+        return cancelFeeCents;
+    }
+
+    public String getCancelPolicy() {
+        return cancelPolicy;
     }
 }

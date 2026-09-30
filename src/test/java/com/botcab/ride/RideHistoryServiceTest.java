@@ -3,6 +3,7 @@ package com.botcab.ride;
 import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.Role;
 import com.botcab.driver.DriverService;
+import com.botcab.earning.EarningService;
 import com.botcab.fare.Fare;
 import com.botcab.fare.FareService;
 import com.botcab.matching.OfferService;
@@ -63,6 +64,12 @@ class RideHistoryServiceTest {
     PaymentService payments;
 
     @Mock
+    EarningService earnings;
+
+    @Mock
+    CancellationPolicy cancellationPolicy;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -72,7 +79,9 @@ class RideHistoryServiceTest {
         lenient().when(txManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         lenient().when(ratings.snapshot(anyLong())).thenReturn(RideRatings.none());
         lenient().when(payments.findByRideId(anyLong())).thenReturn(Optional.empty());
-        service = new RideService(rides, riders, drivers, offers, fares, ratings, payments, txManager);
+        lenient().when(earnings.findByRideId(anyLong())).thenReturn(Optional.empty());
+        service = new RideService(
+                rides, riders, drivers, offers, fares, ratings, payments, earnings, cancellationPolicy, txManager);
     }
 
     @Test

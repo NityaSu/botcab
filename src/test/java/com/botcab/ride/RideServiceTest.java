@@ -1,6 +1,9 @@
 package com.botcab.ride;
 
 import com.botcab.driver.DriverService;
+import com.botcab.earning.DriverEarningView;
+import com.botcab.earning.EarningKind;
+import com.botcab.earning.EarningService;
 import com.botcab.fare.FareQuote;
 import com.botcab.fare.FareService;
 import com.botcab.matching.OfferMessage;
@@ -58,6 +61,12 @@ class RideServiceTest {
     PaymentService payments;
 
     @Mock
+    EarningService earnings;
+
+    @Mock
+    CancellationPolicy cancellationPolicy;
+
+    @Mock
     PlatformTransactionManager txManager;
 
     RideService service;
@@ -67,7 +76,8 @@ class RideServiceTest {
         org.mockito.Mockito.lenient()
                 .when(txManager.getTransaction(any()))
                 .thenReturn(new SimpleTransactionStatus());
-        service = new RideService(rides, riders, drivers, offers, fares, ratings, payments, txManager);
+        service = new RideService(
+                rides, riders, drivers, offers, fares, ratings, payments, earnings, cancellationPolicy, txManager);
     }
 
     @Test
@@ -144,6 +154,9 @@ class RideServiceTest {
         when(ratings.snapshot(11L)).thenReturn(RideRatings.none());
         when(payments.captureForRide(11L, 9600L))
                 .thenReturn(new PaymentView(9600L, PaymentStatus.CAPTURED));
+        when(earnings.creditTrip(3L, 11L, 9600L))
+                .thenReturn(java.util.Optional.of(
+                        new DriverEarningView(11L, 7680L, EarningKind.TRIP, Instant.now())));
 
         RideResponse response = service.complete(11L);
 
@@ -153,8 +166,41 @@ class RideServiceTest {
         assertEquals(1.5, response.fare().surgeMultiplier());
         assertEquals(2.0, response.fare().demandRatio());
         assertEquals(PaymentStatus.CAPTURED, response.payment().status());
+        assertEquals(7680L, response.earning().amountCents());
         verify(fares).createForRide(eq(11L), anyDouble(), eq(2.0));
         verify(payments).captureForRide(11L, 9600L);
+        verify(earnings).creditTrip(3L, 11L, 9600L);
+        verify(drivers).releaseOffer(3L);
+    }
+
+    @Test
+    void riderCancelAfterMatchCapturesFeeAndCreditsDriver() {
+        Ride ride = new Ride(
+                1L,
+                BigDecimal.valueOf(11.55),
+                BigDecimal.valueOf(104.92),
+                BigDecimal.valueOf(11.56),
+                BigDecimal.valueOf(104.93));
+        setId(ride, 12L);
+        ride.assignDriver(3L, Instant.now());
+        when(rides.findById(12L)).thenReturn(java.util.Optional.of(ride));
+        when(rides.save(any(Ride.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cancellationPolicy.quote(eq(CancelledBy.RIDER), eq(RideStatus.MATCHED), any()))
+                .thenReturn(new CancellationQuote(2_000L, CancellationPolicy.FEE_AFTER_GRACE));
+        when(payments.captureForRide(12L, 2_000L))
+                .thenReturn(new PaymentView(2_000L, PaymentStatus.CAPTURED));
+        when(earnings.creditCancelFee(3L, 12L, 2_000L))
+                .thenReturn(java.util.Optional.of(
+                        new DriverEarningView(12L, 2_000L, EarningKind.CANCEL_FEE, Instant.now())));
+        when(ratings.snapshot(12L)).thenReturn(RideRatings.none());
+
+        RideResponse response = service.cancel(12L, new CancelRideRequest(CancelledBy.RIDER, 1L));
+
+        assertEquals(RideStatus.CANCELLED, response.status());
+        assertEquals(2_000L, response.cancellation().feeCents());
+        assertEquals(PaymentStatus.CAPTURED, response.payment().status());
+        verify(payments).captureForRide(12L, 2_000L);
+        verify(earnings).creditCancelFee(3L, 12L, 2_000L);
         verify(drivers).releaseOffer(3L);
     }
 

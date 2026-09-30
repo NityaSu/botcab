@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/", "/index.html", "/rider", "/driver", "/assets/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/rides").hasRole("RIDER")
+                        .requestMatchers(HttpMethod.GET, "/api/rides/*/cancel-preview").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/rides/history").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/rides/*").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/rides/*/cancel").authenticated()

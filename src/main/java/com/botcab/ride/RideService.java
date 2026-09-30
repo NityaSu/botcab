@@ -4,12 +4,15 @@ import com.botcab.common.Haversine;
 import com.botcab.common.auth.AuthPrincipal;
 import com.botcab.common.auth.Role;
 import com.botcab.driver.DriverService;
+import com.botcab.earning.DriverEarningView;
+import com.botcab.earning.EarningService;
 import com.botcab.fare.FareService;
 import com.botcab.fare.FareView;
 import com.botcab.matching.NoDriverAvailableException;
 import com.botcab.matching.OfferMessage;
 import com.botcab.matching.OfferService;
 import com.botcab.payment.PaymentService;
+import com.botcab.payment.PaymentStatus;
 import com.botcab.payment.PaymentView;
 import com.botcab.rating.CreateRatingRequest;
 import com.botcab.rating.RatingService;
@@ -46,6 +49,8 @@ public class RideService {
     private final FareService fares;
     private final RatingService ratings;
     private final PaymentService payments;
+    private final EarningService earnings;
+    private final CancellationPolicy cancellationPolicy;
     private final TransactionTemplate tx;
 
     public RideService(
@@ -56,6 +61,8 @@ public class RideService {
             FareService fares,
             RatingService ratings,
             PaymentService payments,
+            EarningService earnings,
+            CancellationPolicy cancellationPolicy,
             PlatformTransactionManager transactionManager) {
         this.rides = rides;
         this.riders = riders;
@@ -64,6 +71,8 @@ public class RideService {
         this.fares = fares;
         this.ratings = ratings;
         this.payments = payments;
+        this.earnings = earnings;
+        this.cancellationPolicy = cancellationPolicy;
         this.tx = new TransactionTemplate(transactionManager);
     }
 
@@ -102,7 +111,7 @@ public class RideService {
     public RideResponse get(long rideId, AuthPrincipal auth) {
         Ride ride = require(rideId);
         assertCanView(ride, auth);
-        return toView(ride, null);
+        return toView(ride, null, auth);
     }
 
     /**
@@ -117,7 +126,7 @@ public class RideService {
             case DRIVER -> rides.findByDriverIdAndStatusInOrderByEndedAtDesc(
                     auth.id(), terminal, PageRequest.of(0, pageSize));
         };
-        return rows.stream().map(ride -> toView(ride, null)).toList();
+        return rows.stream().map(ride -> toView(ride, null, auth)).toList();
     }
 
     /** After COMPLETED: this role rates the other party. One rating per ride/role. */
@@ -126,14 +135,31 @@ public class RideService {
         Ride ride = require(rideId);
         assertCanView(ride, auth);
         ratings.submit(ride, auth.role(), body.stars());
-        return toView(ride, null);
+        return toView(ride, null, auth);
     }
 
-    private RideResponse toView(Ride ride, OfferMessage offer) {
+    public CancellationPreview previewCancel(long rideId, AuthPrincipal auth) {
+        Ride ride = require(rideId);
+        assertCanView(ride, auth);
+        CancelledBy by = auth.role() == Role.RIDER ? CancelledBy.RIDER : CancelledBy.DRIVER;
+        try {
+            RideCancellationRules.requireAllowed(ride.getStatus(), by);
+        } catch (RideCancelNotAllowedException | IllegalRideTransitionException ex) {
+            return CancellationPreview.denied();
+        }
+        CancellationQuote quote = cancellationPolicy.quote(by, ride.getStatus(), ride.getMatchedAt());
+        return new CancellationPreview(true, quote.feeCents(), quote.policyCode());
+    }
+
+    private RideResponse toView(Ride ride, OfferMessage offer, AuthPrincipal auth) {
         FareView fare = fares.findByRideId(ride.getId()).map(FareView::from).orElse(null);
         RideRatings snapshot = ratings.snapshot(ride.getId());
         PaymentView payment = payments.findByRideId(ride.getId()).orElse(null);
-        return RideResponse.from(ride, offer, fare, snapshot, payment);
+        DriverEarningView earning = null;
+        if (auth != null && auth.role() == Role.DRIVER) {
+            earning = earnings.findByRideId(ride.getId()).orElse(null);
+        }
+        return RideResponse.from(ride, offer, fare, snapshot, payment, earning);
     }
 
     private void assertCanView(Ride ride, AuthPrincipal auth) {
@@ -202,10 +228,14 @@ public class RideService {
         PaymentView payment = payments.captureForRide(ride.getId(), fare.totalCents());
 
         Long driverId = ride.getDriverId();
-        if (driverId != null) {
+        DriverEarningView earning = null;
+        if (driverId != null && payment.status() == PaymentStatus.CAPTURED) {
+            earning = earnings.creditTrip(driverId, ride.getId(), fare.totalCents()).orElse(null);
+            drivers.releaseOffer(driverId);
+        } else if (driverId != null) {
             drivers.releaseOffer(driverId);
         }
-        return RideResponse.from(ride, null, fare, ratings.snapshot(ride.getId()), payment);
+        return RideResponse.from(ride, null, fare, ratings.snapshot(ride.getId()), payment, earning);
     }
 
     @Transactional
@@ -214,8 +244,21 @@ public class RideService {
         assertActor(ride, request);
         Long driverId = ride.getDriverId();
         RideStatus before = ride.getStatus();
-        ride.cancel(request.cancelledBy(), Instant.now());
+        CancellationQuote quote = cancellationPolicy.quote(
+                request.cancelledBy(), before, ride.getMatchedAt());
+        ride.cancel(request.cancelledBy(), Instant.now(), quote.feeCents(), quote.policyCode());
         rides.save(ride);
+
+        PaymentView payment = null;
+        DriverEarningView earning = null;
+        if (quote.feeCents() > 0) {
+            payment = payments.captureForRide(rideId, quote.feeCents());
+            if (driverId != null
+                    && request.cancelledBy() == CancelledBy.RIDER
+                    && payment.status() == PaymentStatus.CAPTURED) {
+                earning = earnings.creditCancelFee(driverId, rideId, quote.feeCents()).orElse(null);
+            }
+        }
 
         if (before == RideStatus.REQUESTED) {
             offers.cancelPendingForRide(rideId);
@@ -223,7 +266,7 @@ public class RideService {
             drivers.releaseOffer(driverId);
             drivers.clearLiveLocation(driverId);
         }
-        return RideResponse.from(ride);
+        return RideResponse.from(ride, null, null, ratings.snapshot(rideId), payment, earning);
     }
 
     /** No more candidates — free the rider to book again. */
@@ -234,7 +277,7 @@ public class RideService {
                 return;
             }
             Long driverId = ride.getDriverId();
-            ride.cancel(CancelledBy.SYSTEM, Instant.now());
+            ride.cancel(CancelledBy.SYSTEM, Instant.now(), 0L, CancellationPolicy.SYSTEM_NO_FEE);
             rides.save(ride);
             offers.cancelPendingForRide(rideId);
             if (driverId != null) {

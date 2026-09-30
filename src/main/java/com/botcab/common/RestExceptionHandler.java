@@ -1,5 +1,6 @@
 package com.botcab.common;
 
+import com.botcab.earning.EarningAlreadyExistsException;
 import com.botcab.fare.FareAlreadyExistsException;
 import com.botcab.fare.FareNotFoundException;
 import com.botcab.matching.NoDriverAvailableException;
@@ -58,6 +59,7 @@ public class RestExceptionHandler {
             RideCancelNotAllowedException.class,
             FareAlreadyExistsException.class,
             PaymentAlreadyExistsException.class,
+            EarningAlreadyExistsException.class,
             RatingAlreadyExistsException.class,
             OptimisticLockingFailureException.class
     })

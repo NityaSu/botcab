@@ -8,7 +8,7 @@ package com.botcab.ride;
  *   <li>Driver: only after they accepted ({@code MATCHED}, {@code DRIVER_EN_ROUTE})</li>
  *   <li>System: any non-terminal (no-driver exhaustion, etc.)</li>
  * </ul>
- * {@code IN_PROGRESS} is not cancellable here — that needs an explicit product rule later.
+ * {@code IN_PROGRESS} is not cancellable. Fees live in {@link CancellationPolicy}.
  */
 public final class RideCancellationRules {
 

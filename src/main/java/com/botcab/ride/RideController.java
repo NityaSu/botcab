@@ -53,6 +53,11 @@ public class RideController {
         return rides.rejectOffer(id, AuthPrincipal.requireDriverId());
     }
 
+    @GetMapping("/{id:\\d+}/cancel-preview")
+    public CancellationPreview cancelPreview(@PathVariable("id") long id) {
+        return rides.previewCancel(id, AuthPrincipal.require());
+    }
+
     @PostMapping("/{id}/cancel")
     public RideResponse cancel(@PathVariable("id") long id) {
         AuthPrincipal auth = AuthPrincipal.require();
