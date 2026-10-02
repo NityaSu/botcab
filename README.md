@@ -7,7 +7,7 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | | |
 |---|---|
 | **Shape** | Modular monolith — not microservices |
-| **Now** | Phase 18 done: mock cash capture on complete |
+| **Now** | Phase 19 done: cancel fees + driver earnings |
 | **IDs** | `BIGINT GENERATED ALWAYS AS IDENTITY` |
 
 ## Stack
@@ -21,11 +21,12 @@ A rider requests pickup and dropoff. The system matches a nearby driver, offers 
 | Load | k6 scripts in `/load` |
 | Deploy | Docker Compose locally; Render Blueprint / Railway |
 | Frontend | React 19 + Vite + TypeScript in `/web` |
+| Schema | Flyway `V1`–`V13` — see `docs/SCHEMA.md` |
 
 ## Packages
 
 ```
-com.botcab.rider | driver | vehicle | ride | matching | payment | fare | rating | common
+com.botcab.rider | driver | vehicle | ride | matching | payment | fare | rating | earning | common
 ```
 
 Each feature owns its controller, service, and repository when those exist. Features call other **services** only.
